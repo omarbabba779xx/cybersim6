@@ -1,0 +1,56 @@
+# ── Python ──
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+dist/
+build/
+.eggs/
+*.whl
+
+# ── Virtual Environments ──
+.venv/
+venv/
+env/
+ENV/
+
+# ── CyberSim6 Runtime ──
+logs/*.json
+logs/*.csv
+logs/*.log
+!logs/.gitkeep
+sandbox/test_files/*
+!sandbox/test_files/.gitkeep
+.cybersim_sandbox
+*.locked
+*.key
+decryption.key
+encryption_manifest.json
+RANSOM_NOTE.txt
+
+# ── IDE ──
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# ── Testing ──
+.pytest_cache/
+htmlcov/
+.coverage
+coverage.xml
+test-results.xml
+*.cover
+
+# ── OS ──
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Claude ──
+.claude/

@@ -1,0 +1,51 @@
+general:
+  log_dir: "./logs"
+  sandbox_dir: "./sandbox/test_files"
+
+ddos:
+  syn_flood:
+    target: "127.0.0.1"
+    target_port: 8080
+    packet_count: 1000
+    rate_limit: 100
+  http_flood:
+    target_url: "http://127.0.0.1:8080"
+    request_count: 500
+    threads: 4
+  detection:
+    threshold_pps: 50
+    window_seconds: 5
+
+bruteforce:
+  target_url: "http://127.0.0.1:9090/login"
+  wordlist: "./cybersim/bruteforce/wordlists/common.txt"
+  username: "admin"
+  max_attempts: 1000
+  delay_ms: 50
+  detection:
+    max_failures: 5
+    window_seconds: 60
+
+sqli:
+  target_url: "http://127.0.0.1:8081"
+  server_port: 8081
+
+xss:
+  target_url: "http://127.0.0.1:8082"
+  server_port: 8082
+
+phishing:
+  server_port: 8083
+  default_template: "corporate_login"
+
+ransomware:
+  sandbox_dir: "./sandbox/test_files"
+  file_extensions:
+    - ".txt"
+    - ".csv"
+    - ".doc"
+    - ".pdf"
+  encrypted_extension: ".locked"
+  max_files: 50
+  max_file_size_mb: 10
+  keep_originals: true

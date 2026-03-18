@@ -1,0 +1,52 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cybersim6"
+version = "1.0.0"
+description = "Plateforme de simulation de 6 cyberattaques en sandbox isole - EMSI Tanger 4IIR"
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.10"
+keywords = ["cybersecurity", "simulation", "education", "pentesting", "sandbox"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Education",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+    "Topic :: Education",
+]
+dependencies = [
+    "scapy>=2.5.0",
+    "pycryptodome>=3.20.0",
+    "pyyaml>=6.0",
+    "requests>=2.31.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[project.scripts]
+cybersim = "cybersim.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["cybersim*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short"
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+
+[tool.setuptools.package-data]
+"cybersim.bruteforce" = ["wordlists/*.txt"]
+"cybersim" = ["../config/*.yaml"]
