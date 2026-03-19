@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-80%20passed-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-214%20passed-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="#"><img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License"></a>
   <a href="#"><img src="https://img.shields.io/badge/EMSI-Tanger%204IIR-red?style=for-the-badge" alt="EMSI"></a>
   <a href="#"><img src="https://img.shields.io/badge/framework-MITRE%20ATT%26CK-orange?style=for-the-badge" alt="MITRE"></a>
@@ -37,7 +37,7 @@
 - **Dashboard Temps Reel** : Visualisation live des attaques et des logs
 - **Mode Demo Automatise** : Une seule commande pour tout tester
 - **Framework NIST/MITRE** : Mapping CVE/CWE et MITRE ATT&CK pour chaque attaque
-- **80 Tests Unitaires** : Suite de tests complete avec pytest
+- **214 Tests** : Suite de tests complete (unit + integration + patterns)
 
 ---
 
@@ -95,7 +95,7 @@
 
 ```bash
 # Cloner le repository
-git clone https://github.com/votre-username/cybersim6.git
+git clone https://github.com/omarbabba779xx/cybersim6.git
 cd cybersim6
 
 # Installer les dependances
@@ -229,7 +229,7 @@ python -m pytest tests/test_dashboard/ -v
 python -m pytest tests/ --cov=cybersim --cov-report=html
 ```
 
-**80 tests** couvrant : safety, logging, config, reporter, detection (6 modules), dashboard API.
+**214 tests** couvrant : safety, logging, config, reporter, perf, base_module, detection (6 modules), patterns, integration, dashboard API.
 
 ---
 
@@ -281,7 +281,7 @@ cybersim6/
 ├── sandbox/
 │   ├── setup_sandbox.py         # Script de creation sandbox
 │   └── test_files/              # Fichiers fictifs
-├── tests/                       # 80 tests pytest
+├── tests/                       # 214 tests pytest
 ├── docs/                        # Documentation complete
 │   ├── contre_mesures.md        #   Fiches contre-mesures
 │   ├── guide_sensibilisation.md #   Guide de sensibilisation
@@ -302,6 +302,23 @@ cybersim6/
 | [Guide de Sensibilisation](docs/guide_sensibilisation.md) | IOC, bonnes pratiques, regles d'or |
 | [Plan de Reponse aux Incidents](docs/plan_reponse_incidents_irp.md) | IRP NIST SP 800-61, 6 scenarios, KPI <= 15 min |
 | [Rapport CVE/CWE/MITRE](docs/rapport_cve_cwe_mitre.md) | References CVE, CWE, mapping MITRE ATT&CK |
+| [Security Policy](SECURITY.md) | Architecture de securite, signalement de vulnerabilites |
+| [Changelog](CHANGELOG.md) | Historique des versions et changements |
+
+---
+
+## Quick Commands (Makefile)
+
+```bash
+make help        # Afficher toutes les commandes
+make install     # Installer le projet
+make dev         # Installer avec outils de dev
+make test        # Lancer les 214 tests
+make coverage    # Tests + rapport de couverture HTML
+make demo        # Lancer la demo automatisee
+make dashboard   # Demarrer le dashboard web
+make clean       # Nettoyer les fichiers temporaires
+```
 
 ---
 

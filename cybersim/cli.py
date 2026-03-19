@@ -57,6 +57,7 @@ def create_parser():
         prog="cybersim",
         description="CyberSim6 - Plateforme de Simulation de Cyberattaques (EDUCATIONAL ONLY)",
     )
+    parser.add_argument("--version", action="version", version="%(prog)s 1.0.0")
     parser.add_argument("--config", type=str, default=None, help="Path to config YAML")
 
     subparsers = parser.add_subparsers(dest="module", help="Module to run")

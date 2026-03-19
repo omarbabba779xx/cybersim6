@@ -8,6 +8,9 @@ version = "1.0.0"
 description = "Plateforme de simulation de 6 cyberattaques en sandbox isole - EMSI Tanger 4IIR"
 readme = "README.md"
 license = {text = "MIT"}
+authors = [
+    {name = "Omar BABBA", email = "omarbabba27@gmail.com"},
+]
 requires-python = ">=3.10"
 keywords = ["cybersecurity", "simulation", "education", "pentesting", "sandbox"]
 classifiers = [
@@ -21,6 +24,12 @@ classifiers = [
     "Topic :: Security",
     "Topic :: Education",
 ]
+[project.urls]
+Homepage = "https://github.com/omarbabba779xx/cybersim6"
+Repository = "https://github.com/omarbabba779xx/cybersim6"
+Documentation = "https://github.com/omarbabba779xx/cybersim6/tree/main/docs"
+Issues = "https://github.com/omarbabba779xx/cybersim6/issues"
+
 dependencies = [
     "scapy>=2.5.0",
     "pycryptodome>=3.20.0",
