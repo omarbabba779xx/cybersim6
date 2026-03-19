@@ -24,6 +24,51 @@
 
 ---
 
+## Screenshots
+
+<details>
+<summary><strong>CLI Banner</strong> — Interface ligne de commande</summary>
+<p align="center">
+  <img src="docs/screenshots/cli_banner.png" alt="CyberSim6 CLI Banner" width="800">
+</p>
+</details>
+
+<details>
+<summary><strong>Demo Mode</strong> — Execution automatisee des 6 modules</summary>
+<p align="center">
+  <img src="docs/screenshots/demo_start.png" alt="Demo Start - DDoS Phase" width="800">
+  <br><em>Phase 1 : Demarrage des serveurs + DDoS HTTP Flood</em>
+</p>
+<p align="center">
+  <img src="docs/screenshots/demo_sqli_bruteforce.png" alt="Demo SQLi + BruteForce" width="800">
+  <br><em>Phase 3-4 : SQL Injection (4 types) + Brute Force Dictionary Attack</em>
+</p>
+<p align="center">
+  <img src="docs/screenshots/demo_xss_phishing.png" alt="Demo XSS + Phishing" width="800">
+  <br><em>Phase 5-6 : XSS (Reflected + Stored + DOM) + Phishing Campaign</em>
+</p>
+<p align="center">
+  <img src="docs/screenshots/demo_report.png" alt="Demo Final Report" width="800">
+  <br><em>Phase 7 : Ransomware AES-256 + Rapport Final (238 events, 6/6 modules)</em>
+</p>
+</details>
+
+<details>
+<summary><strong>Dashboard</strong> — Monitoring temps reel</summary>
+<p align="center">
+  <img src="docs/screenshots/dashboard.png" alt="CyberSim6 Dashboard" width="800">
+</p>
+</details>
+
+<details open>
+<summary><strong>Tests</strong> — 214 tests passed</summary>
+<p align="center">
+  <img src="docs/screenshots/tests_passed.png" alt="214 Tests Passed" width="800">
+</p>
+</details>
+
+---
+
 ## A propos
 
 **CyberSim6** est une plateforme educative de simulation de cyberattaques developpee dans le cadre du projet academique EMSI Tanger (4IIR, 2025-2026). Elle permet de simuler, detecter et analyser **6 types d'attaques** dans un environnement sandbox completement isole.
