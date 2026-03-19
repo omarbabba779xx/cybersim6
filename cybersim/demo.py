@@ -3,9 +3,15 @@ CyberSim6 - Automated Demo Mode
 Runs all 6 attack simulations + detections sequentially with a final report.
 """
 
+import sys
+import os
 import time
 import threading
 from pathlib import Path
+
+# Fix Windows terminal encoding
+if sys.platform == "win32":
+    os.environ.setdefault("PYTHONIOENCODING", "utf-8")
 
 from cybersim.core.logging_engine import CyberSimLogger
 from cybersim.core.config_loader import load_config, get_module_config

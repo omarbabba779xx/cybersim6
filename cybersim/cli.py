@@ -5,7 +5,12 @@ Command-line interface for all 6 attack and detection modules.
 
 import argparse
 import sys
+import os
 from pathlib import Path
+
+# Fix Windows terminal encoding
+if sys.platform == "win32":
+    os.environ["PYTHONIOENCODING"] = "utf-8"
 
 from cybersim.core.config_loader import load_config, get_module_config
 from cybersim.core.logging_engine import CyberSimLogger
