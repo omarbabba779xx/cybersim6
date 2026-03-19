@@ -24,17 +24,17 @@ classifiers = [
     "Topic :: Security",
     "Topic :: Education",
 ]
-[project.urls]
-Homepage = "https://github.com/omarbabba779xx/cybersim6"
-Repository = "https://github.com/omarbabba779xx/cybersim6"
-Documentation = "https://github.com/omarbabba779xx/cybersim6/tree/main/docs"
-Issues = "https://github.com/omarbabba779xx/cybersim6/issues"
-
 dependencies = [
     "pycryptodome>=3.20.0",
     "pyyaml>=6.0",
     "requests>=2.31.0",
 ]
+
+[project.urls]
+Homepage = "https://github.com/omarbabba779xx/cybersim6"
+Repository = "https://github.com/omarbabba779xx/cybersim6"
+Documentation = "https://github.com/omarbabba779xx/cybersim6/tree/main/docs"
+Issues = "https://github.com/omarbabba779xx/cybersim6/issues"
 
 [project.optional-dependencies]
 network = ["scapy>=2.5.0"]
