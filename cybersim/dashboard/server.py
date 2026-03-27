@@ -6,17 +6,240 @@ Real-time visualization of attacks, detections, and logs.
 import json
 import threading
 import time
+from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 from collections import Counter
 
+from cybersim.core.anomaly_detection import AnomalyType, StatisticalDetector
+from cybersim.core.audit_trail import AuditTrail
 from cybersim.core.logging_engine import CyberSimLogger
+from cybersim.core.pdf_report import MITRE_MAPPING
+from cybersim.core.threat_score import ThreatScorer
+
+
+def _parse_limit(value: str, default: int = 100, minimum: int = 1, maximum: int = 500) -> int:
+    """Parse and clamp a query-string limit value."""
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(minimum, min(maximum, parsed))
+
+
+_SEVERITY_MAP = {
+    "info": 0.2,
+    "warning": 0.55,
+    "error": 0.85,
+    "critical": 1.0,
+}
+
+_TACTIC_ORDER = {
+    "Reconnaissance": 0,
+    "Initial Access": 1,
+    "Credential Access": 2,
+    "Execution": 3,
+    "Persistence": 4,
+    "Defense Evasion": 5,
+    "Discovery": 6,
+    "Lateral Movement": 7,
+    "Collection": 8,
+    "Command and Control": 9,
+    "Impact": 10,
+}
+
+
+def _canonical_module_key(module_name: str) -> str:
+    """Map concrete runtime module IDs to stable module families."""
+    normalized = str(module_name or "").lower()
+    for key in MITRE_MAPPING:
+        if key in normalized:
+            return key
+    if "scan" in normalized:
+        return "scanner"
+    if "honeypot" in normalized:
+        return "honeypot"
+    if "waf" in normalized or "firewall" in normalized:
+        return "waf"
+    return normalized or "unknown"
+
+
+def _module_event_type(event: dict) -> str:
+    """Reduce concrete event/module types to attack vs detection for scoring."""
+    module_type = str(event.get("module_type", "")).lower()
+    if "attack" in module_type:
+        return "attack"
+    if "detection" in module_type or "target" in module_type:
+        return "detection"
+    return "attack" if "attack" in str(event.get("event_type", "")).lower() else "detection"
+
+
+def _event_status(event: dict) -> str:
+    """Read the normalized event status."""
+    details = event.get("details", {}) or {}
+    return str(details.get("status") or event.get("status") or "info").lower()
+
+
+def _safe_iso_to_ts(value: str) -> float:
+    """Parse an ISO timestamp into a unix timestamp."""
+    try:
+        return datetime.fromisoformat(value).timestamp()
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _bucketize_events(events: list[dict], bucket_seconds: int = 30) -> list[dict]:
+    """Aggregate event counts into chronological time buckets."""
+    buckets: dict[int, int] = {}
+    for event in events:
+        ts = _safe_iso_to_ts(event.get("timestamp"))
+        bucket = int(ts // bucket_seconds) * bucket_seconds
+        buckets[bucket] = buckets.get(bucket, 0) + 1
+
+    series = []
+    for bucket, count in sorted(buckets.items()):
+        series.append({
+            "timestamp": datetime.fromtimestamp(bucket).isoformat(),
+            "count": count,
+        })
+    return series
+
+
+def _build_soc_snapshot(events: list[dict]) -> dict:
+    """Compute SOC-style metrics, incidents, anomalies and forensic integrity."""
+    scorer = ThreatScorer(snapshot_interval_seconds=0)
+    audit = AuditTrail()
+    incidents = []
+
+    for index, event in enumerate(events):
+        family = _canonical_module_key(event.get("module"))
+        status = _event_status(event)
+        severity = _SEVERITY_MAP.get(status, 0.2)
+        scorer.record_event(
+            family,
+            _module_event_type(event),
+            severity,
+            details=event.get("details", {}) or {},
+        )
+        audit.record(
+            action=event.get("event_type", "event"),
+            actor=event.get("source", "system"),
+            module=family,
+            details={
+                "timestamp": event.get("timestamp"),
+                "status": status,
+                "message": (event.get("details", {}) or {}).get("message", ""),
+            },
+        )
+        if status in {"warning", "error", "critical"}:
+            incidents.append({
+                "id": f"INC-{index + 1:04d}",
+                "timestamp": event.get("timestamp"),
+                "severity": status,
+                "module": event.get("module"),
+                "family": family,
+                "event_type": event.get("event_type"),
+                "message": (event.get("details", {}) or {}).get("message", event.get("event_type", "")),
+                "source": event.get("source", "localhost"),
+            })
+
+    timeline = _bucketize_events(events, bucket_seconds=30)
+    anomaly_detector = StatisticalDetector(
+        window_size=max(20, len(timeline) or 1),
+        learning_period=max(3, min(8, len(timeline) or 3)),
+        z_threshold=2.0,
+    )
+    anomalies = []
+    for bucket in timeline:
+        result = anomaly_detector.observe(
+            bucket["count"],
+            features={"timestamp": bucket["timestamp"], "count": bucket["count"]},
+        )
+        if result.anomaly_type != AnomalyType.NORMAL:
+            anomalies.append({
+                "timestamp": bucket["timestamp"],
+                "count": bucket["count"],
+                "score": round(result.score, 3),
+                "type": result.anomaly_type.value,
+                "z_score": round(result.z_score, 3),
+            })
+
+    audit_valid, last_valid_index = audit.verify_chain()
+    breakdown = {
+        module: round(value, 2)
+        for module, value in sorted(scorer.get_breakdown().items(), key=lambda item: item[1], reverse=True)
+    }
+    recent_incidents = list(reversed(incidents[-12:]))
+
+    return {
+        "threat_score": round(scorer.get_score(), 2),
+        "threat_level": scorer.get_level().value,
+        "incidents_open": len(incidents),
+        "incidents": recent_incidents,
+        "module_breakdown": breakdown,
+        "anomalies": anomalies[-8:],
+        "audit_trail": {
+            "valid": audit_valid,
+            "entries": len(events),
+            "last_valid_index": last_valid_index,
+        },
+    }
+
+
+def _build_attack_map(events: list[dict]) -> dict:
+    """Build an ATT&CK-oriented summary from active events."""
+    families = [_canonical_module_key(event.get("module")) for event in events]
+    counts = Counter(family for family in families if family in MITRE_MAPPING)
+    techniques = []
+    tactics = Counter()
+    seen_chain = set()
+    kill_chain = []
+
+    for family, count in sorted(counts.items(), key=lambda item: item[1], reverse=True):
+        mapping = MITRE_MAPPING[family]
+        tactics[mapping["tactic"]] += count
+        techniques.append({
+            "module": family,
+            "count": count,
+            "technique": mapping["technique"],
+            "tactic": mapping["tactic"],
+            "name": mapping["name"],
+        })
+
+    ordered_events = sorted(events, key=lambda event: _safe_iso_to_ts(event.get("timestamp")))
+    for event in ordered_events:
+        family = _canonical_module_key(event.get("module"))
+        if family not in MITRE_MAPPING or family in seen_chain:
+            continue
+        mapping = MITRE_MAPPING[family]
+        kill_chain.append({
+            "module": family,
+            "technique": mapping["technique"],
+            "tactic": mapping["tactic"],
+            "name": mapping["name"],
+        })
+        seen_chain.add(family)
+
+    tactic_series = [
+        {"tactic": tactic, "count": count}
+        for tactic, count in sorted(tactics.items(), key=lambda item: _TACTIC_ORDER.get(item[0], 999))
+    ]
+    return {
+        "techniques": techniques,
+        "tactics": tactic_series,
+        "kill_chain": kill_chain,
+    }
 
 
 class DashboardHandler(BaseHTTPRequestHandler):
     """HTTP handler for the dashboard."""
 
     logger: CyberSimLogger = None
+    replay_mode: str = "live"
+    replay_session_id: str | None = None
+    replay_events: list[dict] = []
+    replay_position: int = 0
 
     def log_message(self, format, *args):
         pass  # Suppress default access logs
@@ -33,6 +256,22 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._serve_stats()
         elif path == "/api/timeline":
             self._serve_timeline()
+        elif path == "/api/soc":
+            self._serve_soc()
+        elif path == "/api/attack-map":
+            self._serve_attack_map()
+        elif path == "/api/replay/sessions":
+            self._serve_replay_sessions()
+        elif path == "/api/replay/state":
+            self._serve_replay_state()
+        elif path == "/api/replay/load":
+            self._serve_replay_load(parse_qs(parsed.query))
+        elif path == "/api/replay/step":
+            self._serve_replay_step(parse_qs(parsed.query))
+        elif path == "/api/replay/reset":
+            self._serve_replay_reset()
+        elif path == "/api/replay/live":
+            self._serve_replay_live()
         else:
             self.send_error(404)
 
@@ -43,23 +282,20 @@ class DashboardHandler(BaseHTTPRequestHandler):
         self.wfile.write(DASHBOARD_HTML.encode("utf-8"))
 
     def _serve_events(self, params):
-        events = self.logger.events if self.logger else []
+        events = self._get_active_events()
         module = params.get("module", [None])[0]
-        limit = int(params.get("limit", [100])[0])
+        limit = _parse_limit(params.get("limit", [100])[0])
 
         if module:
             events = [e for e in events if e["module"] == module]
 
         events = events[-limit:]
 
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-        self.wfile.write(json.dumps(events, ensure_ascii=False).encode("utf-8"))
+        self._send_json(events)
 
     def _serve_stats(self):
-        events = self.logger.events if self.logger else []
+        events = self._get_active_events()
+        handler_cls = type(self)
 
         modules = Counter(e["module"] for e in events)
         types = Counter(e["event_type"] for e in events)
@@ -77,16 +313,13 @@ class DashboardHandler(BaseHTTPRequestHandler):
             "events_by_type": dict(types),
             "events_by_status": dict(statuses),
             "modules_active": list(modules.keys()),
+            "mode": handler_cls.replay_mode,
+            "replay_session_id": handler_cls.replay_session_id,
         }
-
-        self.send_response(200)
-        self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.end_headers()
-        self.wfile.write(json.dumps(stats, ensure_ascii=False).encode("utf-8"))
+        self._send_json(stats)
 
     def _serve_timeline(self):
-        events = self.logger.events if self.logger else []
+        events = self._get_active_events()
 
         timeline = []
         for e in events[-200:]:
@@ -98,11 +331,101 @@ class DashboardHandler(BaseHTTPRequestHandler):
                 "msg": e.get("details", {}).get("message", ""),
             })
 
+        self._send_json(timeline)
+
+    def _serve_soc(self):
+        self._send_json(_build_soc_snapshot(self._get_active_events()))
+
+    def _serve_attack_map(self):
+        self._send_json(_build_attack_map(self._get_active_events()))
+
+    def _serve_replay_sessions(self):
+        sessions = []
+        log_dir = Path(self.logger.log_dir) if self.logger else Path("./logs")
+        for path in sorted(log_dir.glob("session_*.json")):
+            try:
+                with open(path, "r", encoding="utf-8") as handle:
+                    events = json.load(handle)
+            except (OSError, json.JSONDecodeError):
+                continue
+            session_id = path.stem.replace("session_", "", 1)
+            sessions.append({
+                "session_id": session_id,
+                "events": len(events),
+                "path": str(path),
+            })
+        self._send_json(sessions)
+
+    def _serve_replay_state(self):
+        handler_cls = type(self)
+        total_events = len(handler_cls.replay_events)
+        self._send_json({
+            "mode": handler_cls.replay_mode,
+            "session_id": handler_cls.replay_session_id,
+            "position": handler_cls.replay_position,
+            "total_events": total_events,
+            "progress": round((handler_cls.replay_position / total_events) * 100, 2) if total_events else 0.0,
+        })
+
+    def _serve_replay_load(self, params):
+        session_id = params.get("session", [None])[0]
+        if not session_id:
+            self.send_error(400, "Missing session")
+            return
+
+        log_dir = Path(self.logger.log_dir) if self.logger else Path("./logs")
+        session_path = log_dir / f"session_{session_id}.json"
+        if not session_path.exists():
+            self.send_error(404, "Session not found")
+            return
+
+        with open(session_path, "r", encoding="utf-8") as handle:
+            events = json.load(handle)
+
+        handler_cls = type(self)
+        handler_cls.replay_mode = "replay"
+        handler_cls.replay_session_id = session_id
+        handler_cls.replay_events = events
+        handler_cls.replay_position = min(10, len(events))
+        self._serve_replay_state()
+
+    def _serve_replay_step(self, params):
+        handler_cls = type(self)
+        if handler_cls.replay_mode != "replay":
+            self.send_error(400, "Replay mode is not active")
+            return
+
+        count = _parse_limit(params.get("count", [10])[0], default=10, minimum=1, maximum=100)
+        handler_cls.replay_position = min(
+            len(handler_cls.replay_events),
+            handler_cls.replay_position + count,
+        )
+        self._serve_replay_state()
+
+    def _serve_replay_reset(self):
+        type(self).replay_position = 0
+        self._serve_replay_state()
+
+    def _serve_replay_live(self):
+        handler_cls = type(self)
+        handler_cls.replay_mode = "live"
+        handler_cls.replay_session_id = None
+        handler_cls.replay_events = []
+        handler_cls.replay_position = 0
+        self._serve_replay_state()
+
+    def _get_active_events(self):
+        handler_cls = type(self)
+        if handler_cls.replay_mode == "replay":
+            return handler_cls.replay_events[: handler_cls.replay_position]
+        return self.logger.events if self.logger else []
+
+    def _send_json(self, payload):
         self.send_response(200)
         self.send_header("Content-Type", "application/json")
         self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
-        self.wfile.write(json.dumps(timeline, ensure_ascii=False).encode("utf-8"))
+        self.wfile.write(json.dumps(payload, ensure_ascii=False).encode("utf-8"))
 
 
 class Dashboard:
@@ -116,6 +439,10 @@ class Dashboard:
 
     def start(self):
         DashboardHandler.logger = self.logger
+        DashboardHandler.replay_mode = "live"
+        DashboardHandler.replay_session_id = None
+        DashboardHandler.replay_events = []
+        DashboardHandler.replay_position = 0
         self._server = HTTPServer(("127.0.0.1", self.port), DashboardHandler)
         self._thread = threading.Thread(target=self._server.serve_forever, daemon=True)
         self._thread.start()
@@ -477,6 +804,59 @@ main{flex:1;padding:24px 32px;max-width:1600px;margin:0 auto;width:100%;}
 .mod-count{font-size:1.2rem;font-weight:700;font-family:'JetBrains Mono',monospace;}
 .mod-label{font-size:0.62rem;color:var(--dim);}
 
+.soc-summary{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px;
+}
+.soc-chip,.replay-chip{
+  background:var(--bg2);border:1px solid var(--border);border-radius:10px;
+  padding:10px 12px;
+}
+.soc-chip .lbl,.replay-chip .lbl{
+  font-size:0.62rem;color:var(--muted);text-transform:uppercase;letter-spacing:1px;
+  font-family:'JetBrains Mono',monospace;
+}
+.soc-chip .val,.replay-chip .val{
+  font-size:1.2rem;font-weight:700;font-family:'JetBrains Mono',monospace;color:var(--bright);
+}
+.incident-list,.attack-list,.replay-list,.killchain{
+  display:flex;flex-direction:column;gap:8px;
+}
+.incident-item,.attack-item,.replay-item,.kill-step{
+  background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;
+}
+.incident-top,.attack-top,.replay-top{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;
+}
+.incident-meta,.attack-meta,.replay-meta,.kill-meta{
+  font-size:0.64rem;color:var(--muted);font-family:'JetBrains Mono',monospace;
+}
+.incident-msg,.attack-name,.replay-path,.kill-name{
+  font-size:0.72rem;color:var(--text);line-height:1.5;
+}
+.sev-warning{color:var(--yellow);}
+.sev-error,.sev-critical{color:var(--red);}
+.sev-info{color:var(--cyan);}
+.pill-btn{
+  background:rgba(0,212,255,0.1);color:var(--cyan);border:1px solid rgba(0,212,255,0.25);
+  border-radius:999px;padding:6px 10px;font-size:0.65rem;font-family:'JetBrains Mono',monospace;
+  cursor:pointer;transition:all 0.2s;
+}
+.pill-btn:hover{background:rgba(0,212,255,0.18);}
+.pill-btn.warn{color:var(--yellow);border-color:rgba(255,215,0,0.25);background:rgba(255,215,0,0.08);}
+.pill-btn.danger{color:var(--red);border-color:rgba(255,0,64,0.25);background:rgba(255,0,64,0.08);}
+.btn-row{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.replay-session-actions{display:flex;gap:8px;align-items:center;}
+.killchain{position:relative;padding-left:14px;}
+.kill-step{position:relative;}
+.kill-step::before{
+  content:'';position:absolute;left:-10px;top:18px;width:8px;height:8px;border-radius:50%;
+  background:var(--neon);box-shadow:0 0 8px rgba(0,255,65,0.4);
+}
+.kill-step::after{
+  content:'';position:absolute;left:-7px;top:26px;bottom:-16px;width:2px;background:rgba(0,255,65,0.18);
+}
+.kill-step:last-child::after{display:none;}
+
 /* ═══════════════ FOOTER ═══════════════ */
 footer{
   text-align:center;padding:16px 32px;
@@ -604,6 +984,55 @@ footer{
     </div>
   </div>
 
+  <div class="grid-3" style="margin-bottom:16px;">
+    <div class="panel">
+      <div class="panel-hd">
+        <div class="panel-title"><span class="dot"></span>SOC Mode</div>
+        <span class="panel-badge" id="bdgSoc">triage</span>
+      </div>
+      <div class="panel-body">
+        <div class="soc-summary">
+          <div class="soc-chip"><div class="lbl">Threat Score</div><div class="val" id="socThreatScore">0</div></div>
+          <div class="soc-chip"><div class="lbl">Threat Level</div><div class="val" id="socThreatLevel">safe</div></div>
+          <div class="soc-chip"><div class="lbl">Open Incidents</div><div class="val" id="socIncidentCount">0</div></div>
+        </div>
+        <div class="incident-list" id="socIncidents"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd">
+        <div class="panel-title"><span class="dot"></span>Replay &amp; Forensics</div>
+        <span class="panel-badge" id="bdgReplay">live</span>
+      </div>
+      <div class="panel-body">
+        <div class="btn-row">
+          <button class="pill-btn" id="btnReplayToggle" type="button">Play Replay</button>
+          <button class="pill-btn warn" id="btnReplayStep" type="button">Step +10</button>
+          <button class="pill-btn" id="btnReplayReset" type="button">Reset</button>
+          <button class="pill-btn danger" id="btnReplayLive" type="button">Back To Live</button>
+        </div>
+        <div class="soc-summary" style="margin-bottom:12px;">
+          <div class="replay-chip"><div class="lbl">Mode</div><div class="val" id="replayMode">live</div></div>
+          <div class="replay-chip"><div class="lbl">Session</div><div class="val" id="replaySession">-</div></div>
+          <div class="replay-chip"><div class="lbl">Progress</div><div class="val" id="replayProgress">0%</div></div>
+        </div>
+        <div class="replay-list" id="replaySessions"></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="panel-hd">
+        <div class="panel-title"><span class="dot"></span>ATT&amp;CK Command Center</div>
+        <span class="panel-badge" id="bdgAttackMap">matrix</span>
+      </div>
+      <div class="panel-body">
+        <div class="attack-list" id="attackTechniques"></div>
+        <div class="killchain" id="attackKillChain" style="margin-top:12px;"></div>
+      </div>
+    </div>
+  </div>
+
   <!-- Terminal -->
   <div class="terminal" style="margin-bottom:24px;">
     <div class="terminal-bar">
@@ -690,6 +1119,16 @@ const MOD_CARD_MAP={
 };
 const STATUS_MAP={info:'b-info',warning:'b-warn',error:'b-err'};
 
+function escapeHtml(value){
+  return String(value ?? '').replace(/[&<>"']/g, (char) => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;',
+  }[char]));
+}
+
 function modClass(mod){
   for(const[k,v]of Object.entries(MOD_MAP)) if(mod.includes(k)) return v;
   return 'b-def';
@@ -731,7 +1170,7 @@ function renderBars(containerId,data,classMap,badgeId){
   for(const[lbl,cnt]of entries){
     const pct=Math.max(cnt/max*100,3).toFixed(1);
     const cls=classMap(lbl);
-    h+=`<div class="bar-row"><span class="bar-lbl">${lbl}</span>
+    h+=`<div class="bar-row"><span class="bar-lbl">${escapeHtml(lbl)}</span>
     <div class="bar-track"><div class="bar-fill ${cls}" style="width:${pct}%">${cnt}</div></div></div>`;
   }
   h+='</div>';
@@ -818,6 +1257,135 @@ function renderModuleCards(eventsByModule){
 }
 
 /* ════════════════════════════════════
+   SOC MODE
+════════════════════════════════════ */
+let replayAutoAdvance=null;
+
+function severityClass(level){
+  return `sev-${String(level || 'info').toLowerCase()}`;
+}
+
+function renderSoc(data){
+  document.getElementById('socThreatScore').textContent=data.threat_score.toFixed ? data.threat_score.toFixed(1) : data.threat_score;
+  document.getElementById('socThreatLevel').textContent=String(data.threat_level || 'safe').toUpperCase();
+  document.getElementById('socIncidentCount').textContent=data.incidents_open || 0;
+  document.getElementById('bdgSoc').textContent=`${data.anomalies.length} anomalies`;
+  const el=document.getElementById('socIncidents');
+  if(!el) return;
+  if(!data.incidents.length){
+    el.innerHTML='<div class="incident-item"><div class="incident-msg">// no active incidents</div><div class="incident-meta">Threat telemetry nominal.</div></div>';
+    return;
+  }
+  el.innerHTML=data.incidents.map((incident)=>`
+    <div class="incident-item">
+      <div class="incident-top">
+        <span class="incident-meta">${escapeHtml(incident.id)} · ${escapeHtml(incident.family)}</span>
+        <span class="incident-meta ${severityClass(incident.severity)}">${escapeHtml(incident.severity)}</span>
+      </div>
+      <div class="incident-msg">${escapeHtml(incident.message)}</div>
+      <div class="incident-meta">${escapeHtml((incident.timestamp || '').replace('T',' ').slice(0,19))} · ${escapeHtml(incident.source || 'localhost')}</div>
+    </div>
+  `).join('');
+}
+
+/* ════════════════════════════════════
+   REPLAY & FORENSICS
+════════════════════════════════════ */
+function setReplayAutoAdvance(active){
+  if(replayAutoAdvance){
+    clearInterval(replayAutoAdvance);
+    replayAutoAdvance=null;
+  }
+  const btn=document.getElementById('btnReplayToggle');
+  if(btn) btn.textContent=active?'Pause Replay':'Play Replay';
+  if(!active) return;
+  replayAutoAdvance=setInterval(async ()=>{
+    const stateRes=await fetch('/api/replay/state');
+    const state=await stateRes.json();
+    if(state.mode!=='replay' || state.position>=state.total_events){
+      setReplayAutoAdvance(false);
+      return;
+    }
+    await fetch('/api/replay/step?count=8');
+    refresh();
+  }, 900);
+}
+
+async function replayLoad(sessionId){
+  await fetch(`/api/replay/load?session=${encodeURIComponent(sessionId)}`);
+  setReplayAutoAdvance(false);
+  refresh();
+}
+async function replayStep(count=10){
+  await fetch(`/api/replay/step?count=${count}`);
+  refresh();
+}
+async function replayReset(){
+  await fetch('/api/replay/reset');
+  setReplayAutoAdvance(false);
+  refresh();
+}
+async function replayLive(){
+  await fetch('/api/replay/live');
+  setReplayAutoAdvance(false);
+  refresh();
+}
+
+function renderReplay(sessions,state){
+  document.getElementById('bdgReplay').textContent=state.mode || 'live';
+  document.getElementById('replayMode').textContent=String(state.mode || 'live').toUpperCase();
+  document.getElementById('replaySession').textContent=state.session_id || '-';
+  document.getElementById('replayProgress').textContent=`${Math.round(state.progress || 0)}%`;
+  const list=document.getElementById('replaySessions');
+  if(!list) return;
+  if(!sessions.length){
+    list.innerHTML='<div class="replay-item"><div class="replay-path">// no saved sessions found in logs/</div></div>';
+    return;
+  }
+  list.innerHTML=sessions.slice(0,8).map((session)=>`
+    <div class="replay-item">
+      <div class="replay-top">
+        <span class="replay-meta">${escapeHtml(session.session_id)}</span>
+        <div class="replay-session-actions">
+          <button class="pill-btn" type="button" onclick="replayLoad('${encodeURIComponent(session.session_id)}')">Load</button>
+        </div>
+      </div>
+      <div class="replay-path">${escapeHtml(session.path)}</div>
+      <div class="replay-meta">${session.events} events</div>
+    </div>
+  `).join('');
+}
+
+/* ════════════════════════════════════
+   ATT&CK COMMAND CENTER
+════════════════════════════════════ */
+function renderAttackMap(data){
+  document.getElementById('bdgAttackMap').textContent=`${data.techniques.length} techniques`;
+  const attackEl=document.getElementById('attackTechniques');
+  const chainEl=document.getElementById('attackKillChain');
+  if(attackEl){
+    attackEl.innerHTML=(data.techniques.length?data.techniques:[{module:'none',technique:'-',tactic:'No activity',name:'Awaiting telemetry',count:0}]).map((item)=>`
+      <div class="attack-item">
+        <div class="attack-top">
+          <span class="attack-meta">${escapeHtml(item.module)} · ${escapeHtml(item.technique)}</span>
+          <span class="attack-meta">${item.count}</span>
+        </div>
+        <div class="attack-name">${escapeHtml(item.name)}</div>
+        <div class="attack-meta">${escapeHtml(item.tactic)}</div>
+      </div>
+    `).join('');
+  }
+  if(chainEl){
+    chainEl.innerHTML=(data.kill_chain.length?data.kill_chain:[{module:'none',technique:'-',tactic:'No chain yet',name:'Waiting for replay or live events'}]).map((step)=>`
+      <div class="kill-step">
+        <div class="kill-name">${escapeHtml(step.name)}</div>
+        <div class="kill-meta">${escapeHtml(step.module)} · ${escapeHtml(step.technique)} · ${escapeHtml(step.tactic)}</div>
+      </div>
+    `).join('');
+  }
+}
+
+/* ════════════════════════════════════
    TERMINAL FEED
 ════════════════════════════════════ */
 function renderTerminal(events){
@@ -826,15 +1394,16 @@ function renderTerminal(events){
   const recent=[...events].reverse().slice(0,80);
   let h='';
   for(const e of recent){
-    const t=e.timestamp?e.timestamp.split('T')[1].substring(0,8):'';
-    const msg=(e.details&&e.details.message)||e.event_type;
-    const st=(e.details&&e.details.status)||e.status||'info';
+    const t=escapeHtml(e.timestamp?e.timestamp.split('T')[1].substring(0,8):'');
+    const msg=escapeHtml((e.details&&e.details.message)||e.event_type);
+    const st=escapeHtml((e.details&&e.details.status)||e.status||'info');
+    const mod=escapeHtml(e.module);
     const bc={'info':'tb-info','warning':'tb-warning','error':'tb-error'}[st]||'tb-info';
     const prefix=st==='error'?'<span style="color:var(--red)">$</span>':st==='warning'?'<span style="color:var(--yellow)">!</span>':'<span style="color:var(--neon)">▸</span>';
     h+=`<div class="t-line">
       <span class="t-time">${t}</span>
       <span class="t-badge ${bc}">${st}</span>
-      <span class="t-mod">${e.module}</span>
+      <span class="t-mod">${mod}</span>
       <span class="t-msg">${prefix} ${msg}</span>
     </div>`;
   }
@@ -878,17 +1447,29 @@ function updateDoughnut(eventsByModule){
 ════════════════════════════════════ */
 async function refresh(){
   try{
-    const[sRes,eRes]=await Promise.all([fetch('/api/stats'),fetch('/api/events?limit=200')]);
+    const[sRes,eRes,socRes,mapRes,replaySessionsRes,replayStateRes]=await Promise.all([
+      fetch('/api/stats'),
+      fetch('/api/events?limit=200'),
+      fetch('/api/soc'),
+      fetch('/api/attack-map'),
+      fetch('/api/replay/sessions'),
+      fetch('/api/replay/state'),
+    ]);
     const stats=await sRes.json();
     const events=await eRes.json();
+    const soc=await socRes.json();
+    const attackMap=await mapRes.json();
+    const replaySessions=await replaySessionsRes.json();
+    const replayState=await replayStateRes.json();
 
     // KPIs
-    document.getElementById('sessionId').textContent='SID:'+stats.session_id;
+    document.getElementById('sessionId').textContent=`SID:${stats.session_id} · ${String(stats.mode || 'live').toUpperCase()}`;
     countUp('kTotal',stats.total_events);
     countUp('kAttacks',stats.total_attacks);
     countUp('kDetect',stats.total_detections);
     countUp('kModules',stats.modules_active.length);
     document.getElementById('kModList').textContent=stats.modules_active.slice(0,3).join(' · ')||'—';
+    document.getElementById('bdgTimeline').textContent=stats.mode || 'live';
 
     // Module badge
     document.getElementById('bdgModules').textContent=Object.keys(stats.events_by_module).length+' modules';
@@ -907,11 +1488,34 @@ async function refresh(){
     // Terminal
     renderTerminal(events);
 
+    // SOC / Replay / ATT&CK
+    renderSoc(soc);
+    renderReplay(replaySessions,replayState);
+    renderAttackMap(attackMap);
+
     _lastRefresh=Date.now();
   }catch(e){
     document.getElementById('sessionId').textContent='DISCONNECTED';
   }
 }
+
+document.getElementById('btnReplayToggle').addEventListener('click', async () => {
+  const stateRes=await fetch('/api/replay/state');
+  const state=await stateRes.json();
+  if(state.mode!=='replay'){
+    const sessionsRes=await fetch('/api/replay/sessions');
+    const sessions=await sessionsRes.json();
+    if(sessions.length){
+      await replayLoad(sessions[0].session_id);
+      setReplayAutoAdvance(true);
+    }
+    return;
+  }
+  setReplayAutoAdvance(!replayAutoAdvance);
+});
+document.getElementById('btnReplayStep').addEventListener('click',()=>replayStep(10));
+document.getElementById('btnReplayReset').addEventListener('click',()=>replayReset());
+document.getElementById('btnReplayLive').addEventListener('click',()=>replayLive());
 
 initCharts();
 refresh();

@@ -1,9 +1,10 @@
 """
 CyberSim6 - Unified CLI Entry Point
-Command-line interface for all 6 attack and detection modules.
+Command-line interface for all attack, defense, and analysis modules.
 """
 
 import argparse
+import json
 import sys
 import os
 from pathlib import Path
@@ -39,7 +40,7 @@ BANNER = f"""
 {C.BLUE}  ╚██████╗   ██║   ██████╔╝███████╗██║  ██║{C.RED}███████║██║██║ ╚═╝ ██║╚██████╗
 {C.BLUE}   ╚═════╝   ╚═╝   ╚═════╝ ╚══════╝╚═╝  ╚═╝{C.RED}╚══════╝╚═╝╚═╝     ╚═╝ ╚═════╝{C.RESET}
 {C.DIM}   ──────────────────────────────────────────────────────────────{C.RESET}
-{C.CYAN}   6 Attack Simulations  {C.DIM}|{C.RESET}  {C.GREEN}Detection & Defense  {C.DIM}|{C.RESET}  {C.YELLOW}Sandbox Only{C.RESET}
+{C.CYAN}   10 Attack & Defense Modules  {C.DIM}|{C.RESET}  {C.GREEN}Detection & Analysis  {C.DIM}|{C.RESET}  {C.YELLOW}Sandbox Only{C.RESET}
 {C.DIM}   EMSI Tanger 4IIR  |  Projet Academique 2025-2026{C.RESET}
 """
 
@@ -54,6 +55,14 @@ MODULE_ICONS = {
     "dashboard": f"{C.CYAN}Dashboard{C.RESET}",
     "logs": f"{C.DIM}Logs{C.RESET}",
     "sandbox": f"{C.DIM}Sandbox{C.RESET}",
+    "waf": f"{C.GREEN}{C.BOLD}WAF{C.RESET}",
+    "scanner": f"{C.CYAN}Scanner{C.RESET}",
+    "honeypot": f"{C.YELLOW}{C.BOLD}Honeypot{C.RESET}",
+    "tutorial": f"{C.MAGENTA}Tutorial{C.RESET}",
+    "scenario": f"{C.RED}Scenario{C.RESET}",
+    "report": f"{C.BLUE}Report{C.RESET}",
+    "compliance": f"{C.GREEN}Compliance{C.RESET}",
+    "analyze-password": f"{C.YELLOW}Password{C.RESET}",
 }
 
 
@@ -161,6 +170,52 @@ def create_parser():
 
     rw_sub.add_parser("scan", help="One-time scan for ransomware indicators")
 
+    # --- WAF ---
+    waf_parser = subparsers.add_parser("waf", help="Start the Web Application Firewall")
+    waf_parser.add_argument("--port", type=int, default=8877, help="WAF listening port")
+    waf_parser.add_argument("--backend-port", type=int, default=8080, help="Backend server port")
+
+    # --- Scanner ---
+    scanner_parser = subparsers.add_parser("scanner", help="Run the port scanner")
+    scanner_parser.add_argument("--target", default="127.0.0.1", help="Target IP address")
+    scanner_parser.add_argument("--ports", default="common", choices=["common", "quick", "1-1024"],
+                                help="Port range to scan")
+    scanner_parser.add_argument("--threads", type=int, default=50, help="Number of threads")
+
+    # --- Honeypot ---
+    honeypot_parser = subparsers.add_parser("honeypot", help="Start the honeypot server")
+    honeypot_parser.add_argument("--port", type=int, default=9090, help="Honeypot listening port")
+
+    # --- Tutorial ---
+    tutorial_parser = subparsers.add_parser("tutorial", help="Start interactive tutorial")
+    tutorial_parser.add_argument(
+        "--module",
+        dest="tutorial_module",
+        default=None,
+        help="Tutorial module (omit to list all)",
+    )
+
+    # --- Scenario ---
+    scenario_parser = subparsers.add_parser("scenario", help="Run APT attack scenarios")
+    scenario_parser.add_argument("--name", default=None, help="Scenario name (omit to list all)")
+    scenario_parser.add_argument("--all", action="store_true", dest="run_all",
+                                 help="Run all scenarios")
+
+    # --- Report ---
+    report_parser = subparsers.add_parser("report", help="Generate HTML security report")
+    report_parser.add_argument("--session", required=True, help="Session ID to report on")
+    report_parser.add_argument("--output", default=None, help="Output file path")
+
+    # --- Compliance ---
+    compliance_parser = subparsers.add_parser("compliance", help="Run compliance check")
+    compliance_parser.add_argument("--framework", choices=["iso27001", "nist", "rgpd", "all"],
+                                   default="all", help="Compliance framework")
+    compliance_parser.add_argument("--session", default=None, help="Session ID to analyze")
+
+    # --- Analyze Password ---
+    pw_parser = subparsers.add_parser("analyze-password", help="Analyze password strength")
+    pw_parser.add_argument("--password", required=True, help="Password to analyze")
+
     # --- Demo ---
     demo_parser = subparsers.add_parser("demo", help="Run automated demo of all 6 modules")
     demo_parser.add_argument("--no-dashboard", action="store_true", help="Disable web dashboard")
@@ -220,6 +275,22 @@ def main():
             _handle_demo(args, config, logger)
         elif args.module == "dashboard":
             _handle_dashboard(args, config, logger)
+        elif args.module == "waf":
+            _handle_waf(args, config, logger)
+        elif args.module == "scanner":
+            _handle_scanner(args, config, logger)
+        elif args.module == "honeypot":
+            _handle_honeypot(args, config, logger)
+        elif args.module == "tutorial":
+            _handle_tutorial(args, config, logger)
+        elif args.module == "scenario":
+            _handle_scenario(args, config, logger)
+        elif args.module == "report":
+            _handle_report(args, config, logger)
+        elif args.module == "compliance":
+            _handle_compliance(args, config, logger)
+        elif args.module == "analyze-password":
+            _handle_password(args, config, logger)
         elif args.module == "logs":
             _handle_logs(args, config, logger)
         elif args.module == "sandbox":
@@ -392,6 +463,137 @@ def _handle_dashboard(args, config, logger):
     dashboard.stop()
 
 
+def _handle_waf(args, config, logger):
+    from cybersim.waf.firewall import WebApplicationFirewall, WAFServer
+
+    backend_url = f"http://127.0.0.1:{args.backend_port}"
+    waf = WebApplicationFirewall(logger=logger)
+    server = WAFServer(("127.0.0.1", args.port), waf, backend_url=backend_url)
+    server.start()
+    print(f"[*] Backend origin: {backend_url}")
+    _wait_forever()
+    server.shutdown()
+    server.server_close()
+
+
+def _handle_scanner(args, config, logger):
+    from cybersim.scanner.port_scanner import PortScanner
+
+    scanner = PortScanner(config={"target": args.target, "threads": args.threads}, logger=logger)
+    if args.ports == "common":
+        results = scanner.scan_common()
+    elif args.ports == "quick":
+        results = scanner.quick_scan()
+    else:
+        results = scanner.scan_range(1, 1024, threads=args.threads)
+
+    open_ports = [result for result in results if result.state == "open"]
+    print(f"[*] Scan complete: {len(results)} ports scanned, {len(open_ports)} open")
+    for result in open_ports:
+        banner = f" | Banner: {result.banner}" if result.banner else ""
+        service = result.service or "unknown"
+        print(f"  - {result.port}/tcp open ({service}){banner}")
+
+
+def _handle_honeypot(args, config, logger):
+    from cybersim.honeypot.honeypot import HoneypotServer
+
+    server = HoneypotServer(logger=logger, port=args.port)
+    server.start()
+    _wait_forever()
+    server.stop()
+
+
+def _handle_tutorial(args, config, logger):
+    from cybersim.tutorial.interactive import InteractiveTutorial
+
+    tutorial = InteractiveTutorial(logger=logger)
+    if args.tutorial_module:
+        tutorial.start_tutorial(args.tutorial_module)
+        return
+
+    print("  Available tutorials:")
+    for module in tutorial.list_modules():
+        print(
+            f"    - {module['key']}: {module['name']} "
+            f"({module['difficulty']}, {module['estimated_time']})"
+        )
+
+
+def _handle_scenario(args, config, logger):
+    from cybersim.scenarios.attack_chain import ScenarioRunner
+
+    runner = ScenarioRunner(logger)
+    if args.run_all:
+        results = runner.run_all()
+        print(f"[*] Executed {len(results)} scenarios.")
+        for result in results:
+            print(
+                f"  - {result.scenario_name}: "
+                f"{result.steps_completed}/{result.steps_total} steps, "
+                f"success={result.success}"
+            )
+        return
+
+    if args.name:
+        result = runner.run_scenario(args.name)
+        print(
+            f"[*] {result.scenario_name}: "
+            f"{result.steps_completed}/{result.steps_total} steps, "
+            f"duration={result.duration_seconds}s"
+        )
+        return
+
+    print("  Available scenarios:")
+    for scenario in runner.list_scenarios():
+        print(
+            f"    - {scenario['key']}: {scenario['name']} "
+            f"({scenario['difficulty']}, {scenario['steps']} steps)"
+        )
+
+
+def _handle_report(args, config, logger):
+    from cybersim.core.pdf_report import ReportGenerator
+
+    session_logger = _load_session_logger(args.session, config)
+    report = ReportGenerator(session_logger, session_id=args.session)
+    path = report.generate(output_path=args.output)
+    print(f"[+] Report generated: {path}")
+
+
+def _handle_compliance(args, config, logger):
+    from cybersim.core.compliance import ComplianceChecker
+
+    source_logger = _load_session_logger(args.session, config) if args.session else logger
+    if not source_logger.events:
+        raise ValueError("No events available. Use --session to analyze a saved session.")
+
+    checker = ComplianceChecker(logger=logger)
+    if args.framework == "iso27001":
+        reports = [checker.check_iso27001(source_logger.events)]
+    elif args.framework == "nist":
+        reports = [checker.check_nist(source_logger.events)]
+    elif args.framework == "rgpd":
+        reports = [checker.check_rgpd(source_logger.events)]
+    else:
+        reports = checker.check_all(source_logger.events)
+
+    print(checker.generate_summary(reports))
+
+
+def _handle_password(args, config, logger):
+    from cybersim.utils.password_analyzer import PasswordAnalyzer
+
+    analysis = PasswordAnalyzer().analyze(args.password)
+    print(f"  Strength: {analysis.strength} ({analysis.score}/100)")
+    print(f"  Entropy : {analysis.entropy_bits} bits")
+    print(f"  Crack   : {analysis.crack_time_display}")
+    print(f"  Patterns: {', '.join(analysis.patterns_found) if analysis.patterns_found else 'none'}")
+    print("  Recommendations:")
+    for recommendation in analysis.recommendations:
+        print(f"    - {recommendation}")
+
+
 def _handle_logs(args, config, logger):
     if args.action == "export":
         fmt = args.format
@@ -409,6 +611,21 @@ def _handle_sandbox(args):
         setup()
     elif args.action == "clean":
         clean()
+
+
+def _load_session_logger(session_id, config):
+    """Load a previously exported session log into a logger instance."""
+    log_dir = Path(config["general"]["log_dir"])
+    session_path = log_dir / f"session_{session_id}.json"
+    if not session_path.exists():
+        raise FileNotFoundError(f"Session log not found: {session_path}")
+
+    with open(session_path, "r", encoding="utf-8") as handle:
+        events = json.load(handle)
+
+    session_logger = CyberSimLogger(log_dir=log_dir, session_id=session_id)
+    session_logger.events = events
+    return session_logger
 
 
 def _wait_forever():

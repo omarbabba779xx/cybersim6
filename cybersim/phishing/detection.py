@@ -135,12 +135,14 @@ class PhishingDetector(BaseModule):
         from cybersim.phishing.campaign import PHISHING_EMAILS
         results = []
 
+        phishing_url = self.config.get("phishing_url", "192.168.1.100:8083")
+
         for template_name, template in PHISHING_EMAILS.items():
             result = self.analyze_email(
                 subject=template["subject"],
-                body=template["body"].format(name="Test User", phishing_url="192.168.1.100:8083"),
+                body=template["body"].format(name="Test User", phishing_url=phishing_url),
                 sender="security@suspicious-domain.tk",
-                url="http://192.168.1.100:8083/login",
+                url=f"http://{phishing_url}/login",
             )
             result["template"] = template_name
             results.append(result)

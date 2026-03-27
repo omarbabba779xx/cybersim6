@@ -127,8 +127,10 @@ class XSSVulnerableHandler(BaseHTTPRequestHandler):
         self._log_request("stored_xss_display", "/guestbook")
 
         html = "<h1>Guestbook</h1>"
-        if stored_comments:
-            for comment in stored_comments:
+        with self.lock:
+            comments_snapshot = list(stored_comments)
+        if comments_snapshot:
+            for comment in comments_snapshot:
                 # INTENTIONALLY VULNERABLE - no escaping
                 html += f"<div style='border:1px solid #ccc;padding:10px;margin:5px;'>"
                 html += f"<b>{comment['name']}</b>: {comment['message']}"
@@ -155,7 +157,7 @@ class XSSVulnerableHandler(BaseHTTPRequestHandler):
                 details={
                     "source": self.client_address[0],
                     "name": name,
-                    "message": message[:100],
+                    "comment_text": message[:100],
                     "message": f"Comment stored from {name}: {message[:50]}",
                     "status": "info",
                 },

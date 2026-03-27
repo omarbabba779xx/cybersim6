@@ -72,7 +72,9 @@ def validate_file_in_sandbox(filepath: Path, sandbox_root: Path) -> None:
     """
     resolved = Path(filepath).resolve()
     sandbox_resolved = Path(sandbox_root).resolve()
-    if not str(resolved).startswith(str(sandbox_resolved)):
+    try:
+        resolved.relative_to(sandbox_resolved)
+    except ValueError:
         raise SafetyError(
             f"BLOCKED: File '{filepath}' resolves outside sandbox '{sandbox_root}'. "
             "Path traversal attempt detected."

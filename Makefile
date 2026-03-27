@@ -14,7 +14,7 @@ install: ## Install CyberSim6
 dev: ## Install with dev dependencies (pytest, coverage)
 	pip install -e ".[dev]"
 
-test: ## Run all 214 tests
+test: ## Run all 436 tests
 	python -m pytest tests/ -v
 
 coverage: ## Run tests with HTML coverage report

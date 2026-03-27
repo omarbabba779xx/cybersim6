@@ -53,6 +53,14 @@ class TestValidateFileInSandbox:
         with pytest.raises(SafetyError, match="resolves outside sandbox"):
             validate_file_in_sandbox(outside_file, tmp_path)
 
+    def test_prefix_collision_outside_sandbox_blocked(self, tmp_path):
+        sibling = tmp_path.parent / f"{tmp_path.name}_evil"
+        sibling.mkdir()
+        outside_file = sibling / "payload.txt"
+        outside_file.write_text("hello")
+        with pytest.raises(SafetyError, match="resolves outside sandbox"):
+            validate_file_in_sandbox(outside_file, tmp_path)
+
 
 class TestValidateURLLocalhost:
     def test_localhost_url_allowed(self):
