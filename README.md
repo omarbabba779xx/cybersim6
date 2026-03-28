@@ -1,24 +1,24 @@
-<p align="center">
+﻿<p align="center">
   <img src="docs/assets/banner.svg" alt="CyberSim6 Banner" width="800">
 </p>
 
 <p align="center">
-  <strong>Plateforme de Simulation de Cyberattaques en Sandbox Isole — 15 Modules</strong>
+  <strong>Plateforme de Simulation de Cyberattaques en Sandbox Isole â€” 15 Modules</strong>
 </p>
 
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-662%20passed-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-676%20passed-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="#"><img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License"></a>
   <a href="#"><img src="https://img.shields.io/badge/EMSI-Tanger%204IIR-red?style=for-the-badge" alt="EMSI"></a>
   <a href="#"><img src="https://img.shields.io/badge/framework-MITRE%20ATT%26CK-orange?style=for-the-badge" alt="MITRE"></a>
 </p>
 
 <p align="center">
-  <a href="#-installation">Installation</a> •
-  <a href="#-demo-rapide">Demo</a> •
-  <a href="#-modules">Modules</a> •
-  <a href="#-dashboard">Dashboard</a> •
+  <a href="#-installation">Installation</a> â€¢
+  <a href="#-demo-rapide">Demo</a> â€¢
+  <a href="#-modules">Modules</a> â€¢
+  <a href="#-dashboard">Dashboard</a> â€¢
   <a href="#-documentation">Documentation</a>
 </p>
 
@@ -27,14 +27,14 @@
 ## Screenshots
 
 <details>
-<summary><strong>CLI Banner</strong> — Interface ligne de commande</summary>
+<summary><strong>CLI Banner</strong> â€” Interface ligne de commande</summary>
 <p align="center">
   <img src="docs/screenshots/cli_banner.png" alt="CyberSim6 CLI Banner" width="800">
 </p>
 </details>
 
 <details>
-<summary><strong>Demo Mode</strong> — Execution automatisee des modules</summary>
+<summary><strong>Demo Mode</strong> â€” Execution automatisee des modules</summary>
 <p align="center">
   <img src="docs/screenshots/demo_start.png" alt="Demo Start - DDoS Phase" width="800">
   <br><em>Phase 1 : Demarrage des serveurs + DDoS HTTP Flood</em>
@@ -54,16 +54,16 @@
 </details>
 
 <details>
-<summary><strong>Dashboard</strong> — Monitoring temps reel</summary>
+<summary><strong>Dashboard</strong> â€” Monitoring temps reel</summary>
 <p align="center">
   <img src="docs/screenshots/dashboard.png" alt="CyberSim6 Dashboard" width="800">
 </p>
 </details>
 
 <details open>
-<summary><strong>Tests</strong> — 662 tests passed</summary>
+<summary><strong>Tests</strong> â€” 676 tests passed</summary>
 <p align="center">
-  <img src="docs/screenshots/tests_passed.png" alt="662 Tests Passed" width="800">
+  <img src="docs/screenshots/tests_passed.png" alt="CyberSim6 Test Suite Status" width="800">
 </p>
 </details>
 
@@ -84,47 +84,47 @@
 - **Conformite** : Scoring pondere ISO 27001, NIST CSF, RGPD avec niveaux de maturite et risk rating
 - **Dashboard Temps Reel** : Visualisation live + API documentee (Swagger UI + OpenAPI 3.0.3)
 - **Scenarios MITRE ATT&CK** : Chaines d'attaque completes avec mapping tactiques/techniques
-- **CI/CD** : 3 jobs paralleles (tests coverage >= 70%, flake8, bandit)
+- **CI/CD** : 3 categories de jobs (8 checks au total) avec tests, lint et security
 - **Mode Demo Automatise** : Une seule commande pour tout tester
-- **662 Tests** : Suite de tests complete (unit + integration + patterns + compliance + WAF + honeypot)
+- **676 Tests** : Suite de tests complete (unit + integration + patterns + compliance + WAF + honeypot)
 
 ---
 
 ## Architecture
 
 ```
-                    ┌──────────────────────────────────────────────────┐
-                    │                 CyberSim6 CLI                    │
-                    │           python -m cybersim <module>            │
-                    └────────────────────┬─────────────────────────────┘
-                                         │
-       ┌──────────────┬──────────────────┼──────────────────┬──────────────┐
-       │              │                  │                  │              │
- ┌─────▼─────┐ ┌─────▼──────┐   ┌───────▼───────┐  ┌──────▼──────┐ ┌────▼─────┐
- │  Attaque  │ │  Defense   │   │  Utilitaires  │  │  Dashboard  │ │ Scenarios│
- │  Modules  │ │  Modules   │   │   Modules     │  │  Web UI     │ │ MITRE    │
- │ (6 types) │ │ WAF/Honey/ │   │ Tutorial/Scan │  │ Swagger API │ │ ATT&CK   │
- └─────┬─────┘ │ Scanner    │   │ Compliance    │  └──────┬──────┘ └────┬─────┘
-       │       └─────┬──────┘   └───────┬───────┘         │             │
-       │             │                  │                  │             │
-       │    ┌────────▼──────────────────▼──────────────────▼─────────────▼───┐
-       │    │          Core Services                                         │
-       │    │  ┌──────────┐ ┌────────────┐ ┌────────────┐ ┌───────────────┐ │
-       │    │  │ Anomaly  │ │ Audit      │ │ Threat     │ │ PDF Report    │ │
-       │    │  │Detection │ │ Trail      │ │ Score      │ │ Generator     │ │
-       │    │  └──────────┘ └────────────┘ └────────────┘ └───────────────┘ │
-       │    │  ┌──────────────────────────────────────────────────────────┐  │
-       │    │  │         Unified Logging Engine (JSON/CSV)                │  │
-       │    │  └──────────────────────────────────────────────────────────┘  │
-       │    └────────────────────────────┬──────────────────────────────────┘
-       │                                 │
- ┌─────▼─────────────────────────────────▼──────┐
- │              Safety Framework                 │
- │  ┌──────────┐ ┌──────────┐ ┌───────────────┐ │
- │  │ Loopback │ │ Sandbox  │ │ Anti-Path     │ │
- │  │   Only   │ │ Marker   │ │ Traversal     │ │
- │  └──────────┘ └──────────┘ └───────────────┘ │
- └───────────────────────────────────────────────┘
+                    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+                    â”‚                 CyberSim6 CLI                    â”‚
+                    â”‚           python -m cybersim <module>            â”‚
+                    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+                                         â”‚
+       â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+       â”‚              â”‚                  â”‚                  â”‚              â”‚
+ â”Œâ”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”   â”Œâ”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”  â”Œâ”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”
+ â”‚  Attaque  â”‚ â”‚  Defense   â”‚   â”‚  Utilitaires  â”‚  â”‚  Dashboard  â”‚ â”‚ Scenariosâ”‚
+ â”‚  Modules  â”‚ â”‚  Modules   â”‚   â”‚   Modules     â”‚  â”‚  Web UI     â”‚ â”‚ MITRE    â”‚
+ â”‚ (6 types) â”‚ â”‚ WAF/Honey/ â”‚   â”‚ Tutorial/Scan â”‚  â”‚ Swagger API â”‚ â”‚ ATT&CK   â”‚
+ â””â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”˜ â”‚ Scanner    â”‚   â”‚ Compliance    â”‚  â””â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”˜
+       â”‚       â””â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”˜   â””â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”˜         â”‚             â”‚
+       â”‚             â”‚                  â”‚                  â”‚             â”‚
+       â”‚    â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”
+       â”‚    â”‚          Core Services                                         â”‚
+       â”‚    â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”‚
+       â”‚    â”‚  â”‚ Anomaly  â”‚ â”‚ Audit      â”‚ â”‚ Threat     â”‚ â”‚ PDF Report    â”‚ â”‚
+       â”‚    â”‚  â”‚Detection â”‚ â”‚ Trail      â”‚ â”‚ Score      â”‚ â”‚ Generator     â”‚ â”‚
+       â”‚    â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â”‚
+       â”‚    â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”  â”‚
+       â”‚    â”‚  â”‚         Unified Logging Engine (JSON/CSV)                â”‚  â”‚
+       â”‚    â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜  â”‚
+       â”‚    â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”¬â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
+       â”‚                                 â”‚
+ â”Œâ”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â–¼â”€â”€â”€â”€â”€â”€â”
+ â”‚              Safety Framework                 â”‚
+ â”‚  â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â” â”‚
+ â”‚  â”‚ Loopback â”‚ â”‚ Sandbox  â”‚ â”‚ Anti-Path     â”‚ â”‚
+ â”‚  â”‚   Only   â”‚ â”‚ Marker   â”‚ â”‚ Traversal     â”‚ â”‚
+ â”‚  â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜ â”‚
+ â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ---
@@ -156,7 +156,7 @@
 |---|--------|-------------|
 | 10 | **Tutorial** | Mode interactif d'apprentissage (`interactive.py`) |
 | 11 | **Scenarios** | Chaines d'attaque completes avec mapping MITRE ATT&CK (`attack_chain.py`) |
-| 12 | **Compliance** | Audit ISO 27001, NIST CSF, RGPD — scoring pondere, niveaux de maturite (NOT_IMPLEMENTED / PARTIAL / COMPLIANT), risk rating |
+| 12 | **Compliance** | Audit ISO 27001, NIST CSF, RGPD â€” scoring pondere, niveaux de maturite (NOT_IMPLEMENTED / PARTIAL / COMPLIANT), risk rating |
 | 13 | **Report** | Generation de rapports PDF (`pdf_report.py`) |
 | 14 | **Password Analyzer** | Analyse de robustesse des mots de passe (`password_analyzer.py`) |
 | 15 | **Dashboard** | Interface web temps reel + API REST documentee (Swagger UI) |
@@ -316,24 +316,24 @@ python -m pytest tests/test_cli.py -v
 python -m pytest tests/ --cov=cybersim --cov-report=html
 ```
 
-**662 tests** couvrant : safety, logging, config, reporter, perf, base_module, detection (6 modules), patterns, integration, dashboard API, WAF (50+ regles), honeypot, scanner, scenarios, tutorial, compliance, audit trail, anomaly detection, threat score, PDF report, password analyzer.
+**676 tests** couvrant : safety, logging, config, reporter, perf, base_module, detection (6 modules), patterns, integration, dashboard API, WAF (50+ regles), honeypot, scanner, scenarios, tutorial, compliance, audit trail, anomaly detection, threat score, PDF report, password analyzer.
 
 ---
 
 ## CI/CD
 
-Le pipeline CI/CD GitHub Actions execute **3 jobs en parallele** :
+Le pipeline CI/CD GitHub Actions execute **3 categories de jobs** :
 
 | Job | Outil | Seuil |
 |-----|-------|-------|
-| **Tests** | `pytest --cov` | Couverture >= 70% |
+| **Tests** | `pytest --cov` | Couverture >= 55% |
 | **Lint** | `flake8` | Zero erreur |
 | **Security** | `bandit` | Zero vulnerabilite |
 
 ```yaml
 # Declenchement : push / pull_request sur main
 # Python : 3.10, 3.11, 3.12 (matrice)
-# Les 3 jobs s'executent en parallele pour un feedback rapide
+# 8 checks au total : 6 jobs de test (matrice) + lint + security
 ```
 
 ---
@@ -342,91 +342,91 @@ Le pipeline CI/CD GitHub Actions execute **3 jobs en parallele** :
 
 ```
 cybersim6/
-├── cybersim/
-│   ├── core/                       # Infrastructure commune
-│   │   ├── base_module.py          #   Classe abstraite BaseModule
-│   │   ├── safety.py               #   Framework de securite (7 couches)
-│   │   ├── logging_engine.py       #   Logger unifie JSON/CSV
-│   │   ├── config_loader.py        #   Chargeur YAML
-│   │   ├── reporter.py             #   Generateur de rapports
-│   │   ├── anomaly_detection.py    #   Detection d'anomalies comportementales
-│   │   ├── audit_trail.py          #   Piste d'audit horodatee
-│   │   ├── compliance.py           #   Audit ISO 27001, NIST CSF, RGPD
-│   │   ├── pdf_report.py           #   Generation de rapports PDF
-│   │   └── threat_score.py         #   Scoring de menace multi-facteurs
-│   ├── ddos/                       # Module DDoS
-│   │   ├── target_server.py        #   Serveur HTTP cible
-│   │   ├── syn_flood.py            #   Attaque SYN Flood (Scapy)
-│   │   ├── http_flood.py           #   Attaque HTTP Flood
-│   │   └── detection.py            #   Detection par seuils
-│   ├── sqli/                       # Module SQL Injection
-│   │   ├── vulnerable_server.py    #   App SQLite vulnerable
-│   │   ├── injection_attack.py     #   4 types d'injection
-│   │   └── detection.py            #   9 patterns regex
-│   ├── bruteforce/                 # Module Brute Force
-│   │   ├── auth_server.py          #   Serveur d'authentification
-│   │   ├── dictionary_attack.py    #   Attaque par dictionnaire
-│   │   ├── detection.py            #   Compteur d'echecs/IP
-│   │   └── wordlists/              #   Wordlists de test
-│   ├── xss/                        # Module XSS
-│   │   ├── vulnerable_app.py       #   App avec 4 endpoints vulnerables
-│   │   ├── xss_attack.py           #   Reflected + Stored + DOM
-│   │   └── detection.py            #   10 patterns + sanitize()
-│   ├── phishing/                   # Module Phishing
-│   │   ├── phishing_server.py      #   3 templates de pages
-│   │   ├── campaign.py             #   Campagne simulee (pas de vrai email)
-│   │   └── detection.py            #   Scoring multi-criteres
-│   ├── ransomware/                 # Module Ransomware
-│   │   ├── encryptor.py            #   AES-256-CBC + SHA-256
-│   │   ├── decryptor.py            #   Dechiffrement + verification
-│   │   ├── ransom_note.py          #   Note simulee + disclaimers
-│   │   ├── detection.py            #   Entropie Shannon + extensions
-│   │   └── safety_guard.py         #   Safety specifique ransomware
-│   ├── waf/                        # Web Application Firewall
-│   │   └── ...                     #   50+ regles (CSRF, XXE, SSRF, CmdInj, AuthBypass)
-│   ├── honeypot/                   # Honeypot intelligent
-│   │   └── ...                     #   AttackCorrelator multi-trap
-│   ├── scanner/                    # Scanner reseau
-│   │   └── port_scanner.py         #   Scan de ports TCP
-│   ├── scenarios/                  # Scenarios d'attaque
-│   │   └── attack_chain.py         #   Chaines MITRE ATT&CK
-│   ├── tutorial/                   # Mode tutoriel
-│   │   └── interactive.py          #   Apprentissage interactif
-│   ├── utils/                      # Utilitaires
-│   │   └── password_analyzer.py    #   Analyse de mots de passe
-│   ├── dashboard/                  # Dashboard Web
-│   │   └── server.py               #   Serveur HTTP + Swagger UI + API REST
-│   ├── demo.py                     # Mode demo automatise
-│   └── cli.py                      # CLI unifie (argparse)
-├── config/
-│   └── default.yaml                # Configuration par defaut
-├── sandbox/
-│   ├── setup_sandbox.py            # Script de creation sandbox
-│   └── test_files/                 # Fichiers fictifs
-├── tests/                          # 662 tests pytest
-│   ├── test_core/                  #   Core (safety, logging, compliance, audit, ...)
-│   ├── test_ddos/                  #   DDoS
-│   ├── test_sqli/                  #   SQL Injection
-│   ├── test_bruteforce/            #   Brute Force
-│   ├── test_xss/                   #   XSS
-│   ├── test_phishing/              #   Phishing
-│   ├── test_ransomware/            #   Ransomware
-│   ├── test_dashboard/             #   Dashboard + API
-│   ├── test_waf/                   #   WAF
-│   ├── test_honeypot/              #   Honeypot
-│   ├── test_scanner/               #   Scanner
-│   ├── test_scenarios/             #   Scenarios
-│   ├── test_tutorial/              #   Tutorial
-│   ├── test_utils/                 #   Utils (password analyzer)
-│   └── test_cli.py                 #   CLI
-├── docs/                           # Documentation complete
-│   ├── contre_mesures.md           #   Fiches contre-mesures
-│   ├── guide_sensibilisation.md    #   Guide de sensibilisation
-│   ├── plan_reponse_incidents_irp.md  # IRP (6 scenarios)
-│   └── rapport_cve_cwe_mitre.md    #   CVE/CWE + MITRE ATT&CK
-├── pyproject.toml                  # Configuration Python moderne
-├── requirements.txt                # Dependances
-└── LICENSE                         # MIT
+â”œâ”€â”€ cybersim/
+â”‚   â”œâ”€â”€ core/                       # Infrastructure commune
+â”‚   â”‚   â”œâ”€â”€ base_module.py          #   Classe abstraite BaseModule
+â”‚   â”‚   â”œâ”€â”€ safety.py               #   Framework de securite (7 couches)
+â”‚   â”‚   â”œâ”€â”€ logging_engine.py       #   Logger unifie JSON/CSV
+â”‚   â”‚   â”œâ”€â”€ config_loader.py        #   Chargeur YAML
+â”‚   â”‚   â”œâ”€â”€ reporter.py             #   Generateur de rapports
+â”‚   â”‚   â”œâ”€â”€ anomaly_detection.py    #   Detection d'anomalies comportementales
+â”‚   â”‚   â”œâ”€â”€ audit_trail.py          #   Piste d'audit horodatee
+â”‚   â”‚   â”œâ”€â”€ compliance.py           #   Audit ISO 27001, NIST CSF, RGPD
+â”‚   â”‚   â”œâ”€â”€ pdf_report.py           #   Generation de rapports PDF
+â”‚   â”‚   â””â”€â”€ threat_score.py         #   Scoring de menace multi-facteurs
+â”‚   â”œâ”€â”€ ddos/                       # Module DDoS
+â”‚   â”‚   â”œâ”€â”€ target_server.py        #   Serveur HTTP cible
+â”‚   â”‚   â”œâ”€â”€ syn_flood.py            #   Attaque SYN Flood (Scapy)
+â”‚   â”‚   â”œâ”€â”€ http_flood.py           #   Attaque HTTP Flood
+â”‚   â”‚   â””â”€â”€ detection.py            #   Detection par seuils
+â”‚   â”œâ”€â”€ sqli/                       # Module SQL Injection
+â”‚   â”‚   â”œâ”€â”€ vulnerable_server.py    #   App SQLite vulnerable
+â”‚   â”‚   â”œâ”€â”€ injection_attack.py     #   4 types d'injection
+â”‚   â”‚   â””â”€â”€ detection.py            #   9 patterns regex
+â”‚   â”œâ”€â”€ bruteforce/                 # Module Brute Force
+â”‚   â”‚   â”œâ”€â”€ auth_server.py          #   Serveur d'authentification
+â”‚   â”‚   â”œâ”€â”€ dictionary_attack.py    #   Attaque par dictionnaire
+â”‚   â”‚   â”œâ”€â”€ detection.py            #   Compteur d'echecs/IP
+â”‚   â”‚   â””â”€â”€ wordlists/              #   Wordlists de test
+â”‚   â”œâ”€â”€ xss/                        # Module XSS
+â”‚   â”‚   â”œâ”€â”€ vulnerable_app.py       #   App avec 4 endpoints vulnerables
+â”‚   â”‚   â”œâ”€â”€ xss_attack.py           #   Reflected + Stored + DOM
+â”‚   â”‚   â””â”€â”€ detection.py            #   10 patterns + sanitize()
+â”‚   â”œâ”€â”€ phishing/                   # Module Phishing
+â”‚   â”‚   â”œâ”€â”€ phishing_server.py      #   3 templates de pages
+â”‚   â”‚   â”œâ”€â”€ campaign.py             #   Campagne simulee (pas de vrai email)
+â”‚   â”‚   â””â”€â”€ detection.py            #   Scoring multi-criteres
+â”‚   â”œâ”€â”€ ransomware/                 # Module Ransomware
+â”‚   â”‚   â”œâ”€â”€ encryptor.py            #   AES-256-CBC + SHA-256
+â”‚   â”‚   â”œâ”€â”€ decryptor.py            #   Dechiffrement + verification
+â”‚   â”‚   â”œâ”€â”€ ransom_note.py          #   Note simulee + disclaimers
+â”‚   â”‚   â”œâ”€â”€ detection.py            #   Entropie Shannon + extensions
+â”‚   â”‚   â””â”€â”€ safety_guard.py         #   Safety specifique ransomware
+â”‚   â”œâ”€â”€ waf/                        # Web Application Firewall
+â”‚   â”‚   â””â”€â”€ ...                     #   50+ regles (CSRF, XXE, SSRF, CmdInj, AuthBypass)
+â”‚   â”œâ”€â”€ honeypot/                   # Honeypot intelligent
+â”‚   â”‚   â””â”€â”€ ...                     #   AttackCorrelator multi-trap
+â”‚   â”œâ”€â”€ scanner/                    # Scanner reseau
+â”‚   â”‚   â””â”€â”€ port_scanner.py         #   Scan de ports TCP
+â”‚   â”œâ”€â”€ scenarios/                  # Scenarios d'attaque
+â”‚   â”‚   â””â”€â”€ attack_chain.py         #   Chaines MITRE ATT&CK
+â”‚   â”œâ”€â”€ tutorial/                   # Mode tutoriel
+â”‚   â”‚   â””â”€â”€ interactive.py          #   Apprentissage interactif
+â”‚   â”œâ”€â”€ utils/                      # Utilitaires
+â”‚   â”‚   â””â”€â”€ password_analyzer.py    #   Analyse de mots de passe
+â”‚   â”œâ”€â”€ dashboard/                  # Dashboard Web
+â”‚   â”‚   â””â”€â”€ server.py               #   Serveur HTTP + Swagger UI + API REST
+â”‚   â”œâ”€â”€ demo.py                     # Mode demo automatise
+â”‚   â””â”€â”€ cli.py                      # CLI unifie (argparse)
+â”œâ”€â”€ config/
+â”‚   â””â”€â”€ default.yaml                # Configuration par defaut
+â”œâ”€â”€ sandbox/
+â”‚   â”œâ”€â”€ setup_sandbox.py            # Script de creation sandbox
+â”‚   â””â”€â”€ test_files/                 # Fichiers fictifs
+â”œâ”€â”€ tests/                          # 676 tests pytest
+â”‚   â”œâ”€â”€ test_core/                  #   Core (safety, logging, compliance, audit, ...)
+â”‚   â”œâ”€â”€ test_ddos/                  #   DDoS
+â”‚   â”œâ”€â”€ test_sqli/                  #   SQL Injection
+â”‚   â”œâ”€â”€ test_bruteforce/            #   Brute Force
+â”‚   â”œâ”€â”€ test_xss/                   #   XSS
+â”‚   â”œâ”€â”€ test_phishing/              #   Phishing
+â”‚   â”œâ”€â”€ test_ransomware/            #   Ransomware
+â”‚   â”œâ”€â”€ test_dashboard/             #   Dashboard + API
+â”‚   â”œâ”€â”€ test_waf/                   #   WAF
+â”‚   â”œâ”€â”€ test_honeypot/              #   Honeypot
+â”‚   â”œâ”€â”€ test_scanner/               #   Scanner
+â”‚   â”œâ”€â”€ test_scenarios/             #   Scenarios
+â”‚   â”œâ”€â”€ test_tutorial/              #   Tutorial
+â”‚   â”œâ”€â”€ test_utils/                 #   Utils (password analyzer)
+â”‚   â””â”€â”€ test_cli.py                 #   CLI
+â”œâ”€â”€ docs/                           # Documentation complete
+â”‚   â”œâ”€â”€ contre_mesures.md           #   Fiches contre-mesures
+â”‚   â”œâ”€â”€ guide_sensibilisation.md    #   Guide de sensibilisation
+â”‚   â”œâ”€â”€ plan_reponse_incidents_irp.md  # IRP (6 scenarios)
+â”‚   â””â”€â”€ rapport_cve_cwe_mitre.md    #   CVE/CWE + MITRE ATT&CK
+â”œâ”€â”€ pyproject.toml                  # Configuration Python moderne
+â”œâ”€â”€ requirements.txt                # Dependances
+â””â”€â”€ LICENSE                         # MIT
 ```
 
 ---
@@ -450,7 +450,7 @@ cybersim6/
 make help        # Afficher toutes les commandes
 make install     # Installer le projet
 make dev         # Installer avec outils de dev
-make test        # Lancer les 662 tests
+make test        # Lancer les 676 tests
 make coverage    # Tests + rapport de couverture HTML
 make demo        # Lancer la demo automatisee
 make dashboard   # Demarrer le dashboard web
@@ -499,3 +499,4 @@ Ce projet est sous licence [MIT](LICENSE).
 <p align="center">
   <sub>CyberSim6 - EMSI Tanger 4IIR | Projet Academique 2025-2026</sub>
 </p>
+

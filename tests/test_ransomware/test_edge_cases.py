@@ -62,9 +62,8 @@ class TestShannonEntropy:
             p = Path(tmpdir)
             # Create sandbox marker
             (p / ".cybersim_sandbox").touch()
-            # High entropy file (simulated encrypted)
-            import os
-            (p / "encrypted.locked").write_bytes(os.urandom(512))
+            # Deterministic high-entropy file (uniform byte distribution)
+            (p / "encrypted.locked").write_bytes(bytes(range(256)) * 2)
             # Low entropy file (normal text)
             (p / "normal.txt").write_bytes(b"hello world " * 100)
 
