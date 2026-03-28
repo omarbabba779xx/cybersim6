@@ -124,7 +124,7 @@ class DictionaryAttack(BaseModule):
             })
         else:
             self.log_event("attack_completed", {
-                "message": f"Attack completed. Password not found in wordlist.",
+                "message": "Attack completed. Password not found in wordlist.",
                 "status": "info",
             })
 

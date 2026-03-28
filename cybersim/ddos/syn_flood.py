@@ -5,11 +5,10 @@ Requires administrator/root privileges for raw socket access.
 """
 
 import random
-import threading
 import time
 
 from cybersim.core.base_module import BaseModule
-from cybersim.core.safety import validate_target_ip, SafetyError
+from cybersim.core.safety import validate_target_ip
 
 
 class SYNFloodAttack(BaseModule):
@@ -34,7 +33,7 @@ class SYNFloodAttack(BaseModule):
             rate_limit: Max packets per second
         """
         try:
-            from scapy.all import IP, TCP, send, RandShort
+            from scapy.all import IP, TCP, send
         except ImportError:
             self.log_event("error", {
                 "message": "Scapy not installed. Run: pip install scapy",

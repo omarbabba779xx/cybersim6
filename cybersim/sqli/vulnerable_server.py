@@ -9,8 +9,7 @@ import json
 import sqlite3
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs, unquote
-from pathlib import Path
+from urllib.parse import urlparse, parse_qs
 
 from cybersim.core.logging_engine import CyberSimLogger
 
@@ -127,7 +126,7 @@ class VulnerableHandler(BaseHTTPRequestHandler):
         """VULNERABLE: Direct string concatenation in SQL query."""
         query = params.get("q", [""])[0]
         # INTENTIONALLY VULNERABLE - string concatenation
-        sql = f"SELECT name, price, description FROM products WHERE name LIKE '%{query}%'"
+        sql = f"SELECT name, price, description FROM products WHERE name LIKE '%{query}%'"  # nosec B608
         self._log_query(sql, "search")
 
         try:
@@ -157,7 +156,7 @@ class VulnerableHandler(BaseHTTPRequestHandler):
         username = params.get("username", [""])[0]
         password = params.get("password", [""])[0]
         # INTENTIONALLY VULNERABLE
-        sql = f"SELECT * FROM users WHERE username='{username}' AND password='{password}'"
+        sql = f"SELECT * FROM users WHERE username='{username}' AND password='{password}'"  # nosec B608
         self._log_query(sql, "login")
 
         try:
@@ -167,7 +166,7 @@ class VulnerableHandler(BaseHTTPRequestHandler):
                 user = cursor.fetchone()
 
             if user:
-                html = f"<h2>Login Successful!</h2>"
+                html = "<h2>Login Successful!</h2>"
                 html += f"<p>Welcome, {user[1]}! Role: {user[4]}</p>"
                 html += f"<p>Email: {user[3]}</p>"
             else:
@@ -182,7 +181,7 @@ class VulnerableHandler(BaseHTTPRequestHandler):
         """VULNERABLE: Numeric injection without quotes."""
         user_id = params.get("id", ["1"])[0]
         # INTENTIONALLY VULNERABLE
-        sql = f"SELECT id, username, email, role FROM users WHERE id={user_id}"
+        sql = f"SELECT id, username, email, role FROM users WHERE id={user_id}"  # nosec B608
         self._log_query(sql, "user_profile")
 
         try:
@@ -206,7 +205,7 @@ class VulnerableHandler(BaseHTTPRequestHandler):
     def _handle_api_users(self, params):
         """VULNERABLE: JSON API with SQL injection."""
         user_id = params.get("id", ["1"])[0]
-        sql = f"SELECT id, username, email, role FROM users WHERE id={user_id}"
+        sql = f"SELECT id, username, email, role FROM users WHERE id={user_id}"  # nosec B608
         self._log_query(sql, "api_users")
 
         try:

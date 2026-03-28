@@ -15,12 +15,12 @@ from __future__ import annotations
 import socket
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable
 
 from cybersim.core.base_module import BaseModule
 from cybersim.core.logging_engine import CyberSimLogger
-from cybersim.core.safety import SafetyError, validate_target_ip
+from cybersim.core.safety import validate_target_ip
 
 
 # ---------------------------------------------------------------------------

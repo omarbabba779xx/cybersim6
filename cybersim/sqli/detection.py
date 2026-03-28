@@ -5,7 +5,6 @@ Monitors SQL queries for injection patterns.
 
 import re
 import time
-import threading
 
 from cybersim.core.base_module import BaseModule
 

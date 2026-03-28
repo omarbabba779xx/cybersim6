@@ -7,7 +7,7 @@ EDUCATIONAL PURPOSE ONLY.
 import json
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
-from urllib.parse import urlparse, parse_qs, unquote
+from urllib.parse import urlparse, parse_qs
 
 from cybersim.core.logging_engine import CyberSimLogger
 
@@ -132,9 +132,9 @@ class XSSVulnerableHandler(BaseHTTPRequestHandler):
         if comments_snapshot:
             for comment in comments_snapshot:
                 # INTENTIONALLY VULNERABLE - no escaping
-                html += f"<div style='border:1px solid #ccc;padding:10px;margin:5px;'>"
+                html += "<div style='border:1px solid #ccc;padding:10px;margin:5px;'>"
                 html += f"<b>{comment['name']}</b>: {comment['message']}"
-                html += f"</div>"
+                html += "</div>"
         else:
             html += "<p>No comments yet.</p>"
         html += '<p><a href="/">Back to post a comment</a></p>'

@@ -6,7 +6,6 @@ Runs all 6 attack simulations + detections sequentially with a final report.
 import sys
 import os
 import time
-import threading
 from pathlib import Path
 
 # Fix Windows terminal encoding
@@ -18,9 +17,16 @@ from cybersim.core.config_loader import load_config, get_module_config
 from cybersim.core.reporter import generate_summary
 
 # ANSI
-R = "\033[91m"; G = "\033[92m"; Y = "\033[93m"; B = "\033[94m"
-M = "\033[95m"; C = "\033[96m"; W = "\033[97m"; D = "\033[2m"
-BOLD = "\033[1m"; RST = "\033[0m"
+R = "\033[91m"
+G = "\033[92m"
+Y = "\033[93m"
+B = "\033[94m"
+M = "\033[95m"
+C = "\033[96m"
+W = "\033[97m"
+D = "\033[2m"
+BOLD = "\033[1m"
+RST = "\033[0m"
 
 DEMO_PHASES = [
     (R,  "DDoS",       "HTTP Flood Simulation"),
@@ -84,12 +90,12 @@ def run_demo(config_path: str = None, with_dashboard: bool = True):
         # Export logs
         json_path = logger.export_json()
         csv_path = logger.export_csv()
-        print(f"\n[+] Logs exported:")
+        print("\n[+] Logs exported:")
         print(f"    JSON: {json_path}")
         print(f"    CSV:  {csv_path}")
 
         if dashboard:
-            print(f"\n[+] Dashboard still running at http://127.0.0.1:8888/dashboard")
+            print("\n[+] Dashboard still running at http://127.0.0.1:8888/dashboard")
             print("[*] Press Ctrl+C to stop...")
             try:
                 while True:
@@ -248,7 +254,7 @@ def _demo_phishing(config, logger):
     # Run detection
     print("  [*] Running detection...")
     detector = PhishingDetector(config={}, logger=logger)
-    det_results = detector.run()
+    detector.run()
 
     return {"status": "completed", "emails_sent": result.get("emails_sent", 0) if result else 0}
 
@@ -269,7 +275,8 @@ def _demo_ransomware(config, logger):
             print("  [!] Sandbox not available, skipping ransomware encryption.")
             # Still run detection scan
             detector = RansomwareDetector(config=rw_config, logger=logger)
-            results = detector.scan_directory(sandbox_dir) if sandbox_dir.exists() else {}
+            if sandbox_dir.exists():
+                detector.scan_directory(sandbox_dir)
             return {"status": "skipped", "reason": "no sandbox"}
 
     # Run encryption (no confirmation in demo mode)

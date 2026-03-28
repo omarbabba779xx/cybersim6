@@ -311,7 +311,7 @@ class ReportGenerator:
             buckets[ts] += 1
 
         labels = sorted(buckets.keys())
-        values = [buckets[l] for l in labels]
+        values = [buckets[label] for label in labels]
         max_val = max(values) if values else 1
 
         chart_w, chart_h = 700, 220

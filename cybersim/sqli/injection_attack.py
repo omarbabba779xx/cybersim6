@@ -267,7 +267,7 @@ class SQLInjectionAttack(BaseModule):
                             "endpoint": "/api/users",
                         })
                         self.log_event("sqli_success", {
-                            "message": f"Blind SQLi confirmed: different responses for true/false conditions",
+                            "message": "Blind SQLi confirmed: different responses for true/false conditions",
                             "technique": "blind_boolean",
                             "status": "warning",
                         })

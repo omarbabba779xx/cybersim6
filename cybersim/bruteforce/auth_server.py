@@ -6,7 +6,6 @@ Local HTTP server with a login form for brute force testing.
 import json
 import threading
 import time
-import hashlib
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import parse_qs
 from cybersim.core.logging_engine import CyberSimLogger

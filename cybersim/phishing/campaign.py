@@ -82,6 +82,7 @@ class PhishingCampaign(BaseModule):
             targets: List of target dicts (uses defaults if None)
         """
         phishing_url = phishing_url or "127.0.0.1:8083"
+        validate_url_localhost(f"http://{phishing_url}")
         targets = targets or SIMULATED_TARGETS
         email_template = PHISHING_EMAILS.get(template, PHISHING_EMAILS["corporate_login"])
 
@@ -110,6 +111,7 @@ class PhishingCampaign(BaseModule):
                 "recipient": target["email"],
                 "department": target["department"],
                 "subject": email_template["subject"],
+                "preview": email_body[:120],
                 "status": "info",
             })
             time.sleep(0.2)

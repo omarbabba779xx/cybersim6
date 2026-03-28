@@ -5,7 +5,6 @@ Real-time visualization of attacks, detections, and logs.
 
 import json
 import threading
-import time
 from datetime import datetime
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from pathlib import Path
@@ -456,6 +455,11 @@ class Dashboard:
     def stop(self):
         if self._server:
             self._server.shutdown()
+            self._server.server_close()
+            if self._thread:
+                self._thread.join(timeout=2)
+            self._server = None
+            self._thread = None
             print("[+] Dashboard stopped.")
 
 

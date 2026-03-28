@@ -730,7 +730,7 @@ class _WAFRequestHandler(http.server.BaseHTTPRequestHandler):
         headers = {k: v for k, v in self.headers.items()}
 
         # Derive source IP
-        source_ip = self.client_address[0] if self.client_address else "0.0.0.0"
+        source_ip = self.client_address[0] if self.client_address else "0.0.0.0"  # nosec B104
 
         result = waf.inspect_request(
             method=self.command,
@@ -759,7 +759,7 @@ class _WAFRequestHandler(http.server.BaseHTTPRequestHandler):
                 headers=headers,
                 method=self.command,
             )
-            with urllib.request.urlopen(req, timeout=10) as resp:
+            with urllib.request.urlopen(req, timeout=10) as resp:  # nosec B310
                 resp_body = resp.read()
                 self.send_response(resp.status)
                 for key, val in resp.getheaders():

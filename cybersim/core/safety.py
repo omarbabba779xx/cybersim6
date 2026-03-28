@@ -19,7 +19,7 @@ import socket
 from pathlib import Path
 
 
-ALLOWED_TARGETS: set[str] = {"127.0.0.1", "localhost", "::1", "0.0.0.0"}
+ALLOWED_TARGETS: set[str] = {"127.0.0.1", "localhost", "::1", "0.0.0.0"}  # nosec B104
 SANDBOX_MARKER: str = ".cybersim_sandbox"
 
 

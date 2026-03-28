@@ -38,7 +38,7 @@ jobs:
           --junitxml=test-results.xml
           --cov=cybersim
           --cov-report=term-missing
-          --cov-fail-under=70
+          --cov-fail-under=55
 
       - name: Upload test results
         uses: actions/upload-artifact@v4

@@ -8,9 +8,9 @@ import hashlib
 import json
 from pathlib import Path
 
-from Crypto.Cipher import AES
-from Crypto.Random import get_random_bytes
-from Crypto.Util.Padding import pad
+from Crypto.Cipher import AES  # nosec B413
+from Crypto.Random import get_random_bytes  # nosec B413
+from Crypto.Util.Padding import pad  # nosec B413
 
 from cybersim.core.base_module import BaseModule
 from cybersim.core.safety import validate_sandbox_directory

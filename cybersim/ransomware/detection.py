@@ -8,8 +8,6 @@ Monitors filesystem for ransomware indicators:
 
 import math
 import time
-import hashlib
-import threading
 from pathlib import Path
 from collections import Counter
 from functools import lru_cache
@@ -32,7 +30,7 @@ def _entropy_cached(chunk: bytes) -> float:
 
 def calculate_entropy(data: bytes) -> float:
     """Calculate Shannon entropy of data. High entropy = likely encrypted.
-    
+
     Uses chunk-level caching to avoid recomputing entropy for repeated blocks
     (common in encrypted files with repeated padding).
     """
@@ -56,7 +54,8 @@ class RansomwareDetector(BaseModule):
     ENTROPY_THRESHOLD = 7.5  # Encrypted files typically have entropy > 7.5 (max is 8.0)
 
     def _validate_safety(self):
-        pass
+        watch_dir = Path(self.config.get("sandbox_dir", "./sandbox/test_files"))
+        validate_sandbox_directory(watch_dir)
 
     def scan_directory(self, directory: Path, encrypted_ext: str = ".locked") -> dict:
         """
@@ -159,7 +158,7 @@ class RansomwareDetector(BaseModule):
                 })
 
             prev_files = current_files
-            results = self.scan_directory(watch_dir)
+            self.scan_directory(watch_dir)
 
             time.sleep(interval)
 

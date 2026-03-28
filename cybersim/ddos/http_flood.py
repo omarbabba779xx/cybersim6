@@ -3,8 +3,6 @@ CyberSim6 - HTTP Flood Simulation
 Simulates an HTTP Flood attack using concurrent requests on localhost only.
 """
 
-import threading
-import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests as http_requests

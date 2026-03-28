@@ -5,7 +5,6 @@ Logs all incoming requests for analysis.
 """
 
 import threading
-import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from cybersim.core.logging_engine import CyberSimLogger
 
@@ -41,9 +40,11 @@ class TargetHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.send_header("Content-Type", "text/html")
         self.end_headers()
-        self.wfile.write(b"<html><body><h1>CyberSim6 Target Server</h1>"
-                        b"<p>This is a local target for DDoS simulation.</p>"
-                        b"</body></html>")
+        self.wfile.write(
+            b"<html><body><h1>CyberSim6 Target Server</h1>"
+            b"<p>This is a local target for DDoS simulation.</p>"
+            b"</body></html>"
+        )
 
     def do_POST(self):
         self.do_GET()

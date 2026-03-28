@@ -12,7 +12,7 @@ from __future__ import annotations
 import json
 import threading
 import time
-from collections import Counter, defaultdict
+from collections import Counter
 from dataclasses import dataclass, field
 from enum import Enum
 from http.server import HTTPServer, BaseHTTPRequestHandler
