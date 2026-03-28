@@ -1,4 +1,4 @@
-# ── Python ──
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
@@ -10,13 +10,13 @@ build/
 .eggs/
 *.whl
 
-# ── Virtual Environments ──
+# Virtual Environments
 .venv/
 venv/
 env/
 ENV/
 
-# ── CyberSim6 Runtime ──
+# CyberSim6 Runtime
 logs/*.json
 logs/*.csv
 logs/*.log
@@ -30,7 +30,7 @@ decryption.key
 encryption_manifest.json
 RANSOM_NOTE.txt
 
-# ── IDE ──
+# IDE
 .idea/
 .vscode/
 *.swp
@@ -39,7 +39,7 @@ RANSOM_NOTE.txt
 .project
 .settings/
 
-# ── Testing ──
+# Testing
 .pytest_cache/
 htmlcov/
 .coverage
@@ -47,10 +47,10 @@ coverage.xml
 test-results.xml
 *.cover
 
-# ── OS ──
+# OS
 .DS_Store
 Thumbs.db
 desktop.ini
 
-# ── IDE / Tools ──
+# IDE / Tools
 .claude/

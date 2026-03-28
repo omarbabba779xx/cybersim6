@@ -4,7 +4,7 @@ Simulates a SYN Flood attack using Scapy on localhost only.
 Requires administrator/root privileges for raw socket access.
 """
 
-import random
+import secrets
 import time
 
 from cybersim.core.base_module import BaseModule
@@ -65,12 +65,14 @@ class SYNFloodAttack(BaseModule):
             if not self._running:
                 break
 
-            src_port = random.randint(1024, 65535)
+            # Use a non-deterministic port/sequence generator to avoid Bandit
+            # warnings about `random` in network simulation code.
+            src_port = 1024 + secrets.randbelow(65535 - 1024 + 1)
             packet = IP(dst=target) / TCP(
                 sport=src_port,
                 dport=port,
                 flags="S",
-                seq=random.randint(0, 2**32 - 1),
+                seq=secrets.randbits(32),
             )
 
             try:

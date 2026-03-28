@@ -133,8 +133,16 @@ class PhishingCampaign(BaseModule):
                     "captures": stats["total_captures"],
                     "status": "info",
                 })
-        except Exception:
-            pass
+        except http_requests.RequestException as exc:
+            self.log_event("campaign_results_unavailable", {
+                "message": f"Phishing server stats unavailable: {exc}",
+                "status": "info",
+            })
+        except ValueError as exc:
+            self.log_event("campaign_results_unavailable", {
+                "message": f"Phishing server returned invalid stats JSON: {exc}",
+                "status": "warning",
+            })
 
         return {"emails_sent": sent, "template": template}
 

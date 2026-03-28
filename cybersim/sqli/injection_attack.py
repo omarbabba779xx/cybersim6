@@ -103,11 +103,12 @@ class SQLInjectionAttack(BaseModule):
             if not self._running:
                 break
             results["total"] += 1
+            probe_value = self.config.get("probe_password", "")
 
             try:
                 resp = http_requests.post(
                     f"{base_url}/login",
-                    data={"username": payload, "password": "anything"},
+                    data={"username": payload, "password": probe_value},
                     timeout=5,
                 )
 

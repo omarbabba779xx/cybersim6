@@ -827,8 +827,8 @@ class InteractiveTutorial:
                         "duration": round(elapsed, 2),
                     },
                 )
-            except Exception:
-                pass  # logging is best-effort
+            except Exception as exc:
+                self._print_warning(f"  Session logging unavailable: {exc}")
 
         return TutorialResult(
             module_name=module_name,

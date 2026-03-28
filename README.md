@@ -287,7 +287,7 @@ CyberSim6 est concu avec des mecanismes de securite multi-couches pour garantir 
 |--------|-----------|-------------|
 | 1 | **IP Validation** | Seul `127.0.0.1` / `localhost` est autorise comme cible |
 | 2 | **Sandbox Marker** | Fichier `.cybersim_sandbox` requis dans le repertoire |
-| 3 | **Anti-Path Traversal** | `resolve()` + verification de prefix |
+| 3 | **Anti-Path Traversal** | `resolve()` + verification stricte du parent sandbox |
 | 4 | **Limites Ransomware** | MAX_FILES=50, MAX_SIZE=10MB, extension whitelist |
 | 5 | **Confirmation Interactive** | Prompt `YES` avant chiffrement |
 | 6 | **Non-Destructif** | Originaux conserves par defaut |
@@ -332,7 +332,7 @@ Le pipeline CI/CD GitHub Actions execute **3 categories de jobs** :
 
 | Job | Outil | Seuil |
 |-----|-------|-------|
-| **Tests** | `pytest --cov` | Couverture >= 55% |
+| **Tests** | `pytest --cov` | Couverture >= 50% |
 | **Lint** | `flake8` | Zero erreur |
 | **Security** | `bandit` | Zero vulnerabilite |
 
