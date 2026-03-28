@@ -12,8 +12,9 @@ from __future__ import annotations
 import json
 import threading
 import time
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass, field
+from enum import Enum
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from typing import Any
 
@@ -140,6 +141,308 @@ DEFAULT_TRAPS: list[HoneypotTrap] = [
 
 
 # ---------------------------------------------------------------------------
+# Threat levels
+# ---------------------------------------------------------------------------
+
+class ThreatLevel(str, Enum):
+    """Threat level classification for correlated attacker activity."""
+
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
+
+
+# ---------------------------------------------------------------------------
+# Attack correlator
+# ---------------------------------------------------------------------------
+
+# Known attack payload signatures used for threat escalation.
+_ATTACK_SIGNATURES: list[str] = [
+    "' OR ",
+    "1=1",
+    "<script",
+    "UNION SELECT",
+    "../",
+    "etc/passwd",
+    "cmd=",
+    "exec(",
+    "wget ",
+    "curl ",
+    "nc ",
+    "base64",
+    "eval(",
+]
+
+
+@dataclass
+class _IPProfile:
+    """Internal mutable profile for a single source IP."""
+
+    interactions: list[dict[str, Any]] = field(default_factory=list)
+    traps_visited: set[str] = field(default_factory=set)
+    trap_types_visited: set[str] = field(default_factory=set)
+    first_seen: float = 0.0
+    last_seen: float = 0.0
+    payload_hits: int = 0
+
+
+class AttackCorrelator:
+    """Cross-trap attack correlation engine.
+
+    Tracks interactions per source IP across all honeypot traps and detects
+    multi-stage attack patterns such as reconnaissance sweeps, brute-force
+    attempts, and lateral movement.
+
+    Thread-safe: all public methods acquire an internal lock.
+
+    Args:
+        traps: The list of :class:`HoneypotTrap` entries used by the server
+               so the correlator can map paths to trap metadata.
+        fast_threshold: Maximum seconds between two consecutive interactions
+                        from the same IP to be considered *automated*.
+                        Defaults to ``2.0``.
+        brute_force_threshold: Minimum number of interactions with the *same*
+                               trap path from the same IP to flag brute-force
+                               behaviour.  Defaults to ``5``.
+    """
+
+    def __init__(
+        self,
+        traps: list[HoneypotTrap] | None = None,
+        *,
+        fast_threshold: float = 2.0,
+        brute_force_threshold: int = 5,
+    ) -> None:
+        self._traps = list(traps or DEFAULT_TRAPS)
+        self._trap_map: dict[str, HoneypotTrap] = {t.path: t for t in self._traps}
+        self._profiles: dict[str, _IPProfile] = {}
+        self._lock = threading.RLock()
+        self._fast_threshold = fast_threshold
+        self._brute_force_threshold = brute_force_threshold
+
+    # -- recording -----------------------------------------------------------
+
+    def record(self, interaction: dict[str, Any]) -> None:
+        """Record a single interaction for correlation.
+
+        This is intended to be called by the honeypot server on every trap
+        hit so that the correlator can build per-IP profiles incrementally.
+
+        Args:
+            interaction: A dict as produced by the honeypot handler, with at
+                         least ``source_ip``, ``timestamp``, ``path``,
+                         ``method``, and optionally ``body``.
+        """
+        ip = interaction["source_ip"]
+        ts = interaction["timestamp"]
+        path = interaction["path"].split("?")[0]
+
+        with self._lock:
+            prof = self._profiles.get(ip)
+            if prof is None:
+                prof = _IPProfile(first_seen=ts, last_seen=ts)
+                self._profiles[ip] = prof
+
+            prof.interactions.append(interaction)
+            prof.last_seen = max(prof.last_seen, ts)
+            prof.first_seen = min(prof.first_seen, ts)
+            prof.traps_visited.add(path)
+
+            trap = self._trap_map.get(path)
+            if trap is not None:
+                prof.trap_types_visited.add(trap.trap_type)
+
+            # Check payload for known attack signatures
+            body = interaction.get("body", "")
+            if body and any(sig.lower() in body.lower() for sig in _ATTACK_SIGNATURES):
+                prof.payload_hits += 1
+
+    # -- threat assessment ---------------------------------------------------
+
+    def _threat_level_for(self, prof: _IPProfile) -> ThreatLevel:
+        """Compute the threat level for a single IP profile.
+
+        The base level comes from the number of unique trap paths visited:
+        - 1 trap   -> LOW
+        - 2-3 traps -> MEDIUM
+        - 4-5 traps -> HIGH
+        - 6+ traps  -> CRITICAL
+
+        The level is then escalated (never downgraded) when:
+        - Interactions happen faster than *fast_threshold* (automated tool).
+        - Payloads contain known attack signatures.
+        """
+        n_traps = len(prof.traps_visited)
+
+        if n_traps >= 6:
+            level = ThreatLevel.CRITICAL
+        elif n_traps >= 4:
+            level = ThreatLevel.HIGH
+        elif n_traps >= 2:
+            level = ThreatLevel.MEDIUM
+        else:
+            level = ThreatLevel.LOW
+
+        # Escalate for speed (automated tooling)
+        if len(prof.interactions) >= 2:
+            duration = prof.last_seen - prof.first_seen
+            avg_interval = duration / (len(prof.interactions) - 1) if len(prof.interactions) > 1 else duration
+            if avg_interval <= self._fast_threshold and avg_interval >= 0:
+                level = self._escalate(level)
+
+        # Escalate for malicious payloads
+        if prof.payload_hits > 0:
+            level = self._escalate(level)
+
+        return level
+
+    @staticmethod
+    def _escalate(level: ThreatLevel) -> ThreatLevel:
+        """Move one step up in the threat scale (capped at CRITICAL)."""
+        order = [ThreatLevel.LOW, ThreatLevel.MEDIUM, ThreatLevel.HIGH, ThreatLevel.CRITICAL]
+        idx = order.index(level)
+        return order[min(idx + 1, len(order) - 1)]
+
+    # -- pattern detection ---------------------------------------------------
+
+    def detect_recon(self, ip: str) -> bool:
+        """Return *True* if *ip* exhibits reconnaissance behaviour.
+
+        Reconnaissance is defined as an attacker visiting **3 or more**
+        distinct trap paths, suggesting a systematic scan across multiple
+        services.
+        """
+        with self._lock:
+            prof = self._profiles.get(ip)
+            if prof is None:
+                return False
+            return len(prof.traps_visited) >= 3
+
+    def detect_brute_force(self, ip: str) -> bool:
+        """Return *True* if *ip* is brute-forcing a single trap.
+
+        Brute-force is flagged when the same trap path is hit at least
+        *brute_force_threshold* times from the same IP.
+        """
+        with self._lock:
+            prof = self._profiles.get(ip)
+            if prof is None:
+                return False
+            path_counts: Counter[str] = Counter()
+            for ix in prof.interactions:
+                path_counts[ix["path"].split("?")[0]] += 1
+            return any(c >= self._brute_force_threshold for c in path_counts.values())
+
+    def detect_lateral_movement(self, ip: str) -> bool:
+        """Return *True* if *ip* probes different service *types*.
+
+        Lateral movement is defined as interacting with **2 or more**
+        distinct trap types (e.g. ``login`` + ``api`` + ``admin``).
+        """
+        with self._lock:
+            prof = self._profiles.get(ip)
+            if prof is None:
+                return False
+            return len(prof.trap_types_visited) >= 2
+
+    # -- timelines and reports -----------------------------------------------
+
+    def get_attack_timeline(self, ip: str) -> list[dict[str, Any]]:
+        """Return a chronological list of trap interactions for *ip*.
+
+        Each entry is a dict with keys ``timestamp``, ``path``, ``method``,
+        and ``trap_type`` (or ``"unknown"`` for non-trap paths).
+        """
+        with self._lock:
+            prof = self._profiles.get(ip)
+            if prof is None:
+                return []
+            timeline: list[dict[str, Any]] = []
+            for ix in sorted(prof.interactions, key=lambda x: x["timestamp"]):
+                clean_path = ix["path"].split("?")[0]
+                trap = self._trap_map.get(clean_path)
+                timeline.append({
+                    "timestamp": ix["timestamp"],
+                    "path": ix["path"],
+                    "method": ix["method"],
+                    "trap_type": trap.trap_type if trap else "unknown",
+                })
+            return timeline
+
+    def get_threat_report(self) -> dict[str, Any]:
+        """Return a comprehensive cross-trap threat report.
+
+        Returns:
+            Dictionary with keys:
+
+            - ``total_ips`` — number of distinct source IPs observed.
+            - ``threats`` — mapping of IP to threat detail dict containing
+              ``threat_level``, ``traps_visited``, ``trap_types``,
+              ``interaction_count``, ``first_seen``, ``last_seen``,
+              ``is_recon``, ``is_brute_force``, ``is_lateral_movement``,
+              and ``timeline``.
+        """
+        with self._lock:
+            ips = list(self._profiles.keys())
+
+        threats: dict[str, Any] = {}
+        for ip in ips:
+            with self._lock:
+                prof = self._profiles[ip]
+                level = self._threat_level_for(prof)
+                threats[ip] = {
+                    "threat_level": level.value,
+                    "traps_visited": sorted(prof.traps_visited),
+                    "trap_types": sorted(prof.trap_types_visited),
+                    "interaction_count": len(prof.interactions),
+                    "first_seen": prof.first_seen,
+                    "last_seen": prof.last_seen,
+                    "is_recon": len(prof.traps_visited) >= 3,
+                    "is_brute_force": any(
+                        c >= self._brute_force_threshold
+                        for c in Counter(
+                            ix["path"].split("?")[0] for ix in prof.interactions
+                        ).values()
+                    ),
+                    "is_lateral_movement": len(prof.trap_types_visited) >= 2,
+                    "timeline": self.get_attack_timeline(ip),
+                }
+
+        return {
+            "total_ips": len(threats),
+            "threats": threats,
+        }
+
+    def get_top_threats(self, n: int = 5) -> list[dict[str, Any]]:
+        """Return the *n* most dangerous IPs, sorted by threat severity.
+
+        Sorting priority: threat level (CRITICAL > HIGH > MEDIUM > LOW),
+        then by number of interactions (descending).
+
+        Returns:
+            List of dicts with ``ip`` plus the same fields as in
+            :meth:`get_threat_report` threats entries.
+        """
+        report = self.get_threat_report()
+        level_order = {
+            ThreatLevel.LOW.value: 0,
+            ThreatLevel.MEDIUM.value: 1,
+            ThreatLevel.HIGH.value: 2,
+            ThreatLevel.CRITICAL.value: 3,
+        }
+        items = [
+            {"ip": ip, **detail}
+            for ip, detail in report["threats"].items()
+        ]
+        items.sort(
+            key=lambda x: (level_order.get(x["threat_level"], 0), x["interaction_count"]),
+            reverse=True,
+        )
+        return items[:n]
+
+
+# ---------------------------------------------------------------------------
 # HTTP handler
 # ---------------------------------------------------------------------------
 
@@ -154,6 +457,7 @@ class _HoneypotHandler(BaseHTTPRequestHandler):
     logger: CyberSimLogger | None = None
     interactions: list[dict[str, Any]] = []
     lock: threading.Lock = threading.Lock()
+    correlator: AttackCorrelator | None = None
 
     # -- helpers -------------------------------------------------------------
 
@@ -171,6 +475,9 @@ class _HoneypotHandler(BaseHTTPRequestHandler):
         }
         with self.lock:
             self.interactions.append(entry)
+
+        if self.correlator is not None:
+            self.correlator.record(entry)
 
         if self.logger:
             self.logger.log_event(
@@ -300,6 +607,7 @@ class HoneypotServer:
         self._thread: threading.Thread | None = None
         self._interactions: list[dict[str, Any]] = []
         self._lock = threading.Lock()
+        self.correlator = AttackCorrelator(traps=self.traps)
 
     # -- lifecycle -----------------------------------------------------------
 
@@ -310,6 +618,7 @@ class HoneypotServer:
         _HoneypotHandler.logger = self.logger
         _HoneypotHandler.interactions = self._interactions
         _HoneypotHandler.lock = self._lock
+        _HoneypotHandler.correlator = self.correlator
 
         self._server = HTTPServer((self.host, self.port), _HoneypotHandler)
         self._thread = threading.Thread(

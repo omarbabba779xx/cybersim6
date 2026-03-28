@@ -151,6 +151,75 @@ PATH_TRAVERSAL_PATTERNS: list[tuple[re.Pattern[str], str]] = [
 
 
 # ---------------------------------------------------------------------------
+# XXE (XML External Entity) patterns
+# ---------------------------------------------------------------------------
+
+XXE_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"<!ENTITY", re.IGNORECASE), "XML external entity declaration"),
+    (re.compile(r"SYSTEM\s+[\"']", re.IGNORECASE), "SYSTEM keyword in XML entity"),
+    (re.compile(r"file://", re.IGNORECASE), "file:// protocol in XML"),
+    (re.compile(r"<!DOCTYPE\s+\w+\s+\[", re.IGNORECASE), "DOCTYPE with internal subset"),
+    (re.compile(r"xmlns:xi=", re.IGNORECASE), "XInclude namespace declaration"),
+    (re.compile(r"expect://", re.IGNORECASE), "expect:// protocol in XML"),
+    (re.compile(r"php://filter", re.IGNORECASE), "php://filter wrapper"),
+]
+
+
+# ---------------------------------------------------------------------------
+# Authentication bypass patterns
+# ---------------------------------------------------------------------------
+
+AUTH_BYPASS_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"admin\s*'\s*--", re.IGNORECASE), "Admin comment bypass (admin'--)"),
+    (re.compile(r"'\s*OR\s+1\s*=\s*1", re.IGNORECASE), "OR 1=1 authentication bypass"),
+    (re.compile(r"'\s*OR\s+'[^']*'\s*=\s*'[^']*'", re.IGNORECASE), "OR string equality bypass"),
+    (re.compile(r"admin\s*'#", re.IGNORECASE), "Admin hash comment bypass"),
+    (re.compile(r"'\s*OR\s+true", re.IGNORECASE), "OR true bypass"),
+    (re.compile(r"token=['\"]?null['\"]?|token=undefined", re.IGNORECASE), "Token manipulation (null/undefined)"),
+]
+
+
+# ---------------------------------------------------------------------------
+# Command injection patterns
+# ---------------------------------------------------------------------------
+
+COMMAND_INJECTION_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r";\s*(ls|cat|whoami|id|uname|pwd|wget|curl)\b", re.IGNORECASE), "Semicolon command chain"),
+    (re.compile(r"\|\s*(ls|cat|whoami|id|uname|pwd|wget|curl)\b", re.IGNORECASE), "Pipe command injection"),
+    (re.compile(r"&&\s*(ls|cat|whoami|id|uname|pwd|wget|curl)\b", re.IGNORECASE), "AND command chain"),
+    (re.compile(r"`[^`]+`"), "Backtick command substitution"),
+    (re.compile(r"\$\([^)]+\)"), "Dollar-paren command substitution"),
+    (re.compile(r"\|\|\s*(ls|cat|whoami|id|uname|pwd|wget|curl)\b", re.IGNORECASE), "OR command chain"),
+    (re.compile(r"/bin/(sh|bash|zsh|dash|csh)\b", re.IGNORECASE), "Direct shell invocation"),
+    (re.compile(r"\bnc\s+-[elp]", re.IGNORECASE), "Netcat reverse shell"),
+]
+
+
+# ---------------------------------------------------------------------------
+# SSRF (Server-Side Request Forgery) patterns
+# ---------------------------------------------------------------------------
+
+SSRF_PATTERNS: list[tuple[re.Pattern[str], str]] = [
+    (re.compile(r"(^|[=&?])url=https?://(127\.\d+\.\d+\.\d+|localhost)", re.IGNORECASE), "SSRF to localhost"),
+    (re.compile(r"(^|[=&?])url=https?://10\.\d+\.\d+\.\d+", re.IGNORECASE), "SSRF to 10.x private network"),
+    (re.compile(r"(^|[=&?])url=https?://192\.168\.\d+\.\d+", re.IGNORECASE), "SSRF to 192.168.x private network"),
+    (re.compile(r"(^|[=&?])url=https?://172\.(1[6-9]|2\d|3[01])\.\d+\.\d+", re.IGNORECASE), "SSRF to 172.16-31.x private network"),
+    (re.compile(r"(^|[=&?])url=https?://169\.254\.\d+\.\d+", re.IGNORECASE), "SSRF to link-local/metadata endpoint"),
+    (re.compile(r"(^|[=&?])url=https?://0\.0\.0\.0", re.IGNORECASE), "SSRF to 0.0.0.0"),
+    (re.compile(r"(^|[=&?])url=file://", re.IGNORECASE), "SSRF via file:// protocol"),
+    (re.compile(r"(^|[=&?])url=https?://\[::1?\]", re.IGNORECASE), "SSRF to IPv6 loopback"),
+]
+
+
+# ---------------------------------------------------------------------------
+# CSRF detection helpers (header-based, not pattern-matched on body)
+# ---------------------------------------------------------------------------
+
+# Methods that require CSRF protection
+CSRF_PROTECTED_METHODS = {"POST", "PUT", "DELETE", "PATCH"}
+
+
+# ---------------------------------------------------------------------------
 # Suspicious user-agents
 # ---------------------------------------------------------------------------
 
@@ -223,6 +292,11 @@ class WebApplicationFirewall:
             "user_agent_blocked": 0,
             "blacklist_blocked": 0,
             "custom_rule_blocked": 0,
+            "csrf_blocked": 0,
+            "xxe_blocked": 0,
+            "auth_bypass_blocked": 0,
+            "command_injection_blocked": 0,
+            "ssrf_blocked": 0,
         }
         self._lock = threading.Lock()
 
@@ -261,6 +335,50 @@ class WebApplicationFirewall:
                 action=WAFAction.BLOCK,
                 severity=WAFSeverity.CRITICAL,
                 category="path_traversal",
+                description=description,
+            ))
+
+        # XXE rules
+        for pattern, description in XXE_PATTERNS:
+            self._rules.append(WAFRule(
+                name=f"xxe_{description.lower().replace(' ', '_')}",
+                pattern=pattern,
+                action=WAFAction.BLOCK,
+                severity=WAFSeverity.CRITICAL,
+                category="xxe",
+                description=description,
+            ))
+
+        # Authentication bypass rules
+        for pattern, description in AUTH_BYPASS_PATTERNS:
+            self._rules.append(WAFRule(
+                name=f"auth_{description.lower().replace(' ', '_')}",
+                pattern=pattern,
+                action=WAFAction.BLOCK,
+                severity=WAFSeverity.CRITICAL,
+                category="auth_bypass",
+                description=description,
+            ))
+
+        # Command injection rules
+        for pattern, description in COMMAND_INJECTION_PATTERNS:
+            self._rules.append(WAFRule(
+                name=f"cmdi_{description.lower().replace(' ', '_')}",
+                pattern=pattern,
+                action=WAFAction.BLOCK,
+                severity=WAFSeverity.CRITICAL,
+                category="command_injection",
+                description=description,
+            ))
+
+        # SSRF rules
+        for pattern, description in SSRF_PATTERNS:
+            self._rules.append(WAFRule(
+                name=f"ssrf_{description.lower().replace(' ', '_')}",
+                pattern=pattern,
+                action=WAFAction.BLOCK,
+                severity=WAFSeverity.HIGH,
+                category="ssrf",
                 description=description,
             ))
 
@@ -355,6 +473,11 @@ class WebApplicationFirewall:
         rate_result = self._check_rate_limit(source_ip)
         if rate_result is not None:
             return rate_result
+
+        # CSRF protection: check state-changing requests for valid tokens/headers
+        csrf_result = self._check_csrf(method, path, headers, body, source_ip)
+        if csrf_result is not None:
+            return csrf_result
 
         # Build the text blob to inspect (path + decoded query + body + headers)
         decoded_path = urllib.parse.unquote(path)
@@ -452,6 +575,69 @@ class WebApplicationFirewall:
         import html as _html
         return BLOCKED_PAGE_HTML.replace("{reason}", _html.escape(reason))
 
+    # -- CSRF protection ----------------------------------------------------
+
+    def _check_csrf(
+        self,
+        method: str,
+        path: str,
+        headers: dict[str, str],
+        body: str,
+        source_ip: str,
+    ) -> WAFResult | None:
+        """Check state-changing requests for CSRF indicators.
+
+        Blocks POST/PUT/DELETE/PATCH requests that are missing both a CSRF
+        token (in body or header) and a valid Origin/Referer header.  This
+        is intentionally conservative: a request is only blocked when *all*
+        of the indicators are absent.
+
+        Returns:
+            A blocking :class:`WAFResult` if CSRF protection fails, else ``None``.
+        """
+        if method.upper() not in CSRF_PROTECTED_METHODS:
+            return None
+
+        # Check for CSRF token in body or custom header
+        has_csrf_token = (
+            "csrf_token" in body.lower()
+            or "csrf-token" in body.lower()
+            or "_token" in body.lower()
+            or "X-CSRF-Token" in headers
+            or "x-csrf-token" in headers
+            or "X-XSRF-TOKEN" in headers
+            or "x-xsrf-token" in headers
+        )
+
+        # Check for valid Origin or Referer header
+        has_origin = bool(headers.get("Origin") or headers.get("origin"))
+        has_referer = bool(headers.get("Referer") or headers.get("referer"))
+
+        if not has_csrf_token and not has_origin and not has_referer:
+            reason = "[CSRF] Missing CSRF token and Origin/Referer headers"
+            with self._lock:
+                self._stats["blocked"] += 1
+                self._stats["csrf_blocked"] += 1
+
+            self._log("request_blocked", {
+                "message": f"BLOCKED {method} {path} -- {reason}",
+                "source": source_ip,
+                "path": path,
+                "method": method,
+                "category": "csrf",
+                "severity": "high",
+                "status": "warning",
+            })
+
+            return WAFResult(
+                allowed=False,
+                action=WAFAction.BLOCK,
+                block_reason=reason,
+                details={"category": "csrf", "source_ip": source_ip},
+            )
+
+        return None
+
     # -- Rate limiting ------------------------------------------------------
 
     def _check_rate_limit(self, source_ip: str) -> WAFResult | None:
@@ -499,6 +685,11 @@ class WebApplicationFirewall:
             "xss": "xss_blocked",
             "path_traversal": "path_traversal_blocked",
             "user_agent": "user_agent_blocked",
+            "csrf": "csrf_blocked",
+            "xxe": "xxe_blocked",
+            "auth_bypass": "auth_bypass_blocked",
+            "command_injection": "command_injection_blocked",
+            "ssrf": "ssrf_blocked",
         }
         key = mapping.get(category, "custom_rule_blocked")
         self._stats[key] = self._stats.get(key, 0) + 1

@@ -32,8 +32,13 @@ jobs:
       - name: Setup sandbox
         run: python -m cybersim sandbox setup
 
-      - name: Run tests
-        run: python -m pytest tests/ -v --tb=short --junitxml=test-results.xml
+      - name: Run tests with coverage
+        run: >
+          python -m pytest tests/ -v --tb=short
+          --junitxml=test-results.xml
+          --cov=cybersim
+          --cov-report=term-missing
+          --cov-fail-under=70
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -52,5 +57,24 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Check syntax
-        run: python -m py_compile cybersim/cli.py
+      - name: Install flake8
+        run: pip install flake8
+
+      - name: Run flake8 lint
+        run: flake8 cybersim/ --max-line-length=120 --extend-ignore=E501,W503,E203
+
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install bandit
+        run: pip install bandit
+
+      - name: Run bandit security scan
+        run: bandit -r cybersim/ -ll -q

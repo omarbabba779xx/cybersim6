@@ -17,6 +17,7 @@ from cybersim.core.audit_trail import AuditTrail
 from cybersim.core.logging_engine import CyberSimLogger
 from cybersim.core.pdf_report import MITRE_MAPPING
 from cybersim.core.threat_score import ThreatScorer
+from cybersim.dashboard.api_docs import get_openapi_spec, serve_swagger_ui
 
 
 def _parse_limit(value: str, default: int = 100, minimum: int = 1, maximum: int = 500) -> int:
@@ -272,6 +273,10 @@ class DashboardHandler(BaseHTTPRequestHandler):
             self._serve_replay_reset()
         elif path == "/api/replay/live":
             self._serve_replay_live()
+        elif path == "/api/docs":
+            serve_swagger_ui(self)
+        elif path == "/api/openapi.json":
+            self._send_json(get_openapi_spec())
         else:
             self.send_error(404)
 

