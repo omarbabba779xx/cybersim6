@@ -879,6 +879,491 @@ footer{
   .logo-ascii{display:none;}
   .module-grid{grid-template-columns:repeat(2,1fr);}
 }
+
+/* COMMAND-SCALE VISUAL OVERRIDES */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(circle at 12% 16%, rgba(0,212,255,0.12), transparent 28%),
+    radial-gradient(circle at 86% 14%, rgba(180,79,255,0.14), transparent 26%),
+    radial-gradient(circle at 50% 84%, rgba(0,255,65,0.08), transparent 34%);
+  pointer-events:none;
+  z-index:0;
+}
+
+header{
+  padding:0 40px;
+  height:78px;
+  background:linear-gradient(180deg, rgba(5,8,16,0.96), rgba(5,8,16,0.84));
+  box-shadow:0 14px 44px rgba(0,0,0,0.28);
+}
+
+.logo-text{
+  font-size:1.55rem;
+  letter-spacing:-0.8px;
+}
+
+main{
+  padding:28px 36px 34px;
+  max-width:1880px;
+}
+
+.hero-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.45fr) minmax(360px,0.95fr);
+  gap:18px;
+  margin-bottom:18px;
+}
+
+.hero-panel{
+  position:relative;
+  overflow:hidden;
+  min-height:330px;
+  border-radius:24px;
+  padding:28px;
+  background:linear-gradient(180deg, rgba(13,18,32,0.96), rgba(8,12,20,0.98));
+  border:1px solid rgba(46,65,96,0.92);
+  box-shadow:0 24px 80px rgba(0,0,0,0.26);
+}
+
+.hero-panel::before{
+  content:'';
+  position:absolute;
+  inset:0 auto auto 0;
+  width:100%;
+  height:3px;
+}
+
+.hero-shell::before{
+  background:linear-gradient(90deg, rgba(0,255,65,0.8), rgba(0,212,255,0.7), rgba(180,79,255,0.65));
+  box-shadow:0 0 30px rgba(0,212,255,0.3);
+}
+
+.hero-side::before{
+  background:linear-gradient(90deg, rgba(255,107,0,0.65), rgba(255,0,64,0.72), rgba(180,79,255,0.65));
+  box-shadow:0 0 30px rgba(255,0,64,0.22);
+}
+
+.hero-kicker{
+  display:inline-flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:16px;
+  padding:7px 12px;
+  border-radius:999px;
+  border:1px solid rgba(0,212,255,0.22);
+  background:rgba(0,212,255,0.08);
+  font-size:0.68rem;
+  font-weight:700;
+  letter-spacing:2px;
+  text-transform:uppercase;
+  color:var(--cyan);
+  font-family:'JetBrains Mono',monospace;
+}
+
+.hero-title{
+  max-width:860px;
+  margin-bottom:14px;
+  font-size:clamp(2.15rem,3.25vw,3.65rem);
+  line-height:1.02;
+  letter-spacing:-1.8px;
+  color:var(--bright);
+}
+
+.hero-copy{
+  max-width:780px;
+  margin-bottom:22px;
+  color:rgba(200,216,240,0.82);
+  font-size:0.98rem;
+  line-height:1.75;
+}
+
+.hero-status-row{
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-bottom:22px;
+}
+
+.hero-badge{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  border-radius:14px;
+  background:rgba(5,8,16,0.58);
+  border:1px solid rgba(36,48,68,0.95);
+  color:var(--muted);
+  font-size:0.72rem;
+  font-family:'JetBrains Mono',monospace;
+}
+
+.hero-badge strong{
+  color:var(--bright);
+  font-size:0.76rem;
+}
+
+.hero-metrics{
+  display:grid;
+  grid-template-columns:repeat(4, minmax(0,1fr));
+  gap:12px;
+}
+
+.hero-metric{
+  padding:18px 18px 16px;
+  border-radius:18px;
+  border:1px solid rgba(36,48,68,0.95);
+  background:
+    linear-gradient(180deg, rgba(17,24,40,0.94), rgba(9,13,22,0.92));
+  min-height:126px;
+}
+
+.hero-metric-label{
+  margin-bottom:8px;
+  color:var(--muted);
+  font-size:0.68rem;
+  font-weight:700;
+  letter-spacing:1.6px;
+  text-transform:uppercase;
+  font-family:'JetBrains Mono',monospace;
+}
+
+.hero-metric-value{
+  margin-bottom:8px;
+  color:var(--bright);
+  font-family:'JetBrains Mono',monospace;
+  font-size:2.2rem;
+  font-weight:700;
+  line-height:1;
+}
+
+.hero-metric-sub{
+  color:var(--dim);
+  font-size:0.76rem;
+  line-height:1.5;
+}
+
+.hero-side-grid{
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0,1fr));
+  gap:12px;
+  height:calc(100% - 44px);
+}
+
+.hero-mini{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  min-height:126px;
+  padding:16px;
+  border-radius:18px;
+  border:1px solid rgba(36,48,68,0.95);
+  background:rgba(5,8,16,0.52);
+}
+
+.hero-mini-wide{
+  grid-column:span 2;
+}
+
+.hero-mini-label{
+  color:var(--muted);
+  font-size:0.68rem;
+  font-weight:700;
+  letter-spacing:1.6px;
+  text-transform:uppercase;
+  font-family:'JetBrains Mono',monospace;
+}
+
+.hero-mini-value{
+  color:var(--bright);
+  font-size:2.1rem;
+  font-weight:700;
+  line-height:1;
+  font-family:'JetBrains Mono',monospace;
+}
+
+.hero-mini-meta{
+  color:var(--dim);
+  font-size:0.78rem;
+  line-height:1.55;
+}
+
+.hero-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.hero-list-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding:10px 12px;
+  border-radius:12px;
+  background:rgba(17,24,40,0.88);
+  border:1px solid rgba(36,48,68,0.95);
+  font-size:0.78rem;
+  color:var(--text);
+}
+
+.hero-list-item strong{
+  color:var(--cyan);
+  font-family:'JetBrains Mono',monospace;
+  font-size:0.72rem;
+}
+
+.hero-tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.hero-tag{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border-radius:999px;
+  background:rgba(0,212,255,0.08);
+  border:1px solid rgba(0,212,255,0.18);
+  color:var(--cyan);
+  font-size:0.72rem;
+  font-family:'JetBrains Mono',monospace;
+}
+
+.hero-tag strong{
+  color:var(--bright);
+}
+
+.hero-brief{
+  color:rgba(200,216,240,0.84);
+  font-size:0.84rem;
+  line-height:1.68;
+}
+
+.kpi-grid{
+  gap:18px;
+  margin-bottom:18px;
+}
+
+.kpi{
+  min-height:150px;
+  padding:24px 24px 22px;
+  border-radius:20px;
+  background:linear-gradient(180deg, rgba(13,18,32,0.96), rgba(9,13,22,0.94));
+}
+
+.kpi-icon{
+  font-size:1.55rem;
+  margin-bottom:12px;
+}
+
+.kpi-label{
+  font-size:0.66rem;
+  letter-spacing:2.2px;
+}
+
+.kpi-value{
+  font-size:3.15rem;
+}
+
+.kpi-sub{
+  margin-top:10px;
+}
+
+.story-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.26fr) minmax(0,1fr);
+  gap:18px;
+  margin-bottom:18px;
+}
+
+.insight-grid{
+  display:grid;
+  grid-template-columns:minmax(0,0.94fr) minmax(0,0.94fr) minmax(0,1.12fr);
+  gap:18px;
+  margin-bottom:18px;
+}
+
+.command-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.05fr) minmax(0,1.12fr) minmax(0,0.93fr);
+  gap:18px;
+  margin-bottom:18px;
+}
+
+.panel{
+  position:relative;
+  overflow:hidden;
+  min-height:330px;
+  border-radius:20px;
+  padding:24px 24px 22px;
+  background:linear-gradient(180deg, rgba(13,18,32,0.96), rgba(9,13,22,0.94));
+  box-shadow:0 18px 48px rgba(0,0,0,0.18);
+}
+
+.panel::after{
+  content:'';
+  position:absolute;
+  inset:0 auto auto 0;
+  width:100%;
+  height:1px;
+  background:linear-gradient(90deg, rgba(0,212,255,0.18), rgba(0,255,65,0.08), transparent);
+}
+
+.panel-xl{
+  min-height:374px;
+}
+
+.panel-hd{
+  margin-bottom:18px;
+}
+
+.panel-title{
+  font-size:0.72rem;
+  letter-spacing:2.4px;
+}
+
+.panel-badge{
+  padding:4px 11px;
+}
+
+.chart-wrap{
+  height:260px;
+}
+
+.chart-wrap canvas{
+  max-height:260px;
+}
+
+.module-grid{
+  grid-template-columns:repeat(2,1fr);
+  gap:12px;
+}
+
+.mod-card{
+  min-height:122px;
+  padding:14px;
+  border-radius:14px;
+}
+
+.mod-count{
+  font-size:1.65rem;
+}
+
+.soc-summary{
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.soc-chip,.replay-chip{
+  padding:14px;
+  border-radius:14px;
+}
+
+.soc-chip .val,.replay-chip .val{
+  font-size:1.45rem;
+}
+
+.incident-item,.attack-item,.replay-item,.kill-step{
+  padding:14px;
+  border-radius:14px;
+}
+
+.terminal{
+  margin-top:6px;
+  max-height:420px;
+  border-radius:18px;
+  box-shadow:0 20px 52px rgba(0,0,0,0.22);
+}
+
+.terminal-body{
+  max-height:360px;
+  padding:14px 18px;
+  font-size:0.76rem;
+}
+
+footer{
+  padding:18px 36px;
+}
+
+@media(max-width:1450px){
+  .hero-grid,.story-grid,.command-grid{
+    grid-template-columns:1fr;
+  }
+
+  .hero-metrics{
+    grid-template-columns:repeat(2, minmax(0,1fr));
+  }
+
+  .insight-grid{
+    grid-template-columns:1fr 1fr;
+  }
+}
+
+@media(max-width:1100px){
+  main{
+    padding:18px;
+  }
+
+  .insight-grid,.command-grid,.story-grid{
+    grid-template-columns:1fr;
+  }
+
+  .module-grid{
+    grid-template-columns:repeat(3,1fr);
+  }
+}
+
+@media(max-width:760px){
+  header{
+    height:auto;
+    padding:14px 16px;
+    align-items:flex-start;
+    gap:14px;
+    flex-direction:column;
+  }
+
+  .header-right{
+    width:100%;
+    justify-content:flex-start;
+    flex-wrap:wrap;
+  }
+
+  .hero-panel{
+    padding:22px;
+    min-height:auto;
+  }
+
+  .hero-title{
+    font-size:2.15rem;
+  }
+
+  .hero-metrics,.hero-side-grid{
+    grid-template-columns:1fr;
+  }
+
+  .hero-mini-wide{
+    grid-column:span 1;
+  }
+
+  .module-grid{
+    grid-template-columns:repeat(2,1fr);
+  }
+}
+
+@media(max-width:600px){
+  .kpi-grid,.hero-metrics,.hero-side-grid,.module-grid,.soc-summary{
+    grid-template-columns:1fr;
+  }
+
+  .hero-mini-wide{
+    grid-column:span 1;
+  }
+}
 </style>
 </head>
 <body>
@@ -904,6 +1389,73 @@ footer{
 </header>
 
 <main>
+  <section class="hero-grid">
+    <section class="hero-panel hero-shell">
+      <div class="hero-kicker">Cyber Defense War Room</div>
+      <h1 class="hero-title">Live command, replay, triage and ATT&amp;CK correlation on one cinematic surface.</h1>
+      <p class="hero-copy">
+        A larger, more tactical command center for CyberSim6: real-time telemetry, forensic replay,
+        analyst posture and campaign visibility brought together in a board that feels built for operations.
+      </p>
+      <div class="hero-status-row">
+        <div class="hero-badge">Ops Mode <strong id="heroMode">LIVE</strong></div>
+        <div class="hero-badge">Threat Level <strong id="heroThreatLevel">SAFE</strong></div>
+        <div class="hero-badge">Replay Session <strong id="heroReplaySession">-</strong></div>
+        <div class="hero-badge">Observed Techniques <strong id="heroTechniqueCount">0</strong></div>
+      </div>
+      <div class="hero-metrics">
+        <div class="hero-metric">
+          <div class="hero-metric-label">Threat Pressure</div>
+          <div class="hero-metric-value" id="heroThreatScore">0.0</div>
+          <div class="hero-metric-sub">composite live score</div>
+        </div>
+        <div class="hero-metric">
+          <div class="hero-metric-label">Coverage</div>
+          <div class="hero-metric-value" id="heroCoverage">0%</div>
+          <div class="hero-metric-sub">core modules represented</div>
+        </div>
+        <div class="hero-metric">
+          <div class="hero-metric-label">Kill Chain Depth</div>
+          <div class="hero-metric-value" id="heroChainDepth">0</div>
+          <div class="hero-metric-sub">mapped tactical stages</div>
+        </div>
+        <div class="hero-metric">
+          <div class="hero-metric-label">Ops Tempo</div>
+          <div class="hero-metric-value" id="heroTempo">LIVE</div>
+          <div class="hero-metric-sub">replay progression or event volume</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="hero-panel hero-side">
+      <div class="panel-hd">
+        <div class="panel-title"><span class="dot"></span>Battle Focus</div>
+        <span class="panel-badge" id="heroFocusBadge">nominal</span>
+      </div>
+      <div class="hero-side-grid">
+        <div class="hero-mini">
+          <div class="hero-mini-label">Incident Pressure</div>
+          <div class="hero-mini-value" id="heroPressure">0</div>
+          <div class="hero-mini-meta" id="heroPressureMeta">No open incidents</div>
+        </div>
+        <div class="hero-mini">
+          <div class="hero-mini-label">Telemetry Integrity</div>
+          <div class="hero-mini-value" id="heroIntegrity">LOCKED</div>
+          <div class="hero-mini-meta" id="heroIntegrityMeta">Audit chain verified</div>
+        </div>
+        <div class="hero-mini hero-mini-wide">
+          <div class="hero-mini-label">Active Watchlist</div>
+          <div class="hero-list" id="heroWatchlist"></div>
+        </div>
+        <div class="hero-mini hero-mini-wide">
+          <div class="hero-mini-label">Dominant Modules</div>
+          <div class="hero-tags" id="heroDominantModules"></div>
+          <div class="hero-brief" id="heroBrief">Telemetry is online. Launch a replay or activate modules to illuminate the command surface.</div>
+        </div>
+      </div>
+    </section>
+  </section>
+
   <!-- KPI Row -->
   <div class="kpi-grid">
     <div class="kpi g">
@@ -933,8 +1485,8 @@ footer{
   </div>
 
   <!-- Row 1: Module bars + Charts -->
-  <div class="grid-2" style="margin-bottom:16px;">
-    <div class="panel">
+  <div class="story-grid">
+    <div class="panel panel-xl">
       <div class="panel-hd">
         <div class="panel-title"><span class="dot"></span>Events by Module</div>
         <span class="panel-badge" id="bdgModules">0 modules</span>
@@ -942,7 +1494,7 @@ footer{
       <div class="panel-body" id="moduleChart"></div>
     </div>
 
-    <div class="panel">
+    <div class="panel panel-xl">
       <div class="panel-hd">
         <div class="panel-title"><span class="dot"></span>Timeline (last 20 min)</div>
         <span class="panel-badge" id="bdgTimeline">live</span>
@@ -954,7 +1506,7 @@ footer{
   </div>
 
   <!-- Row 2: Status bars + Doughnut + Module Cards -->
-  <div class="grid-3" style="margin-bottom:16px;">
+  <div class="insight-grid">
     <div class="panel">
       <div class="panel-hd">
         <div class="panel-title"><span class="dot"></span>By Status</div>
@@ -984,7 +1536,7 @@ footer{
     </div>
   </div>
 
-  <div class="grid-3" style="margin-bottom:16px;">
+  <div class="command-grid">
     <div class="panel">
       <div class="panel-hd">
         <div class="panel-title"><span class="dot"></span>SOC Mode</div>
@@ -1256,6 +1808,110 @@ function renderModuleCards(eventsByModule){
   el.innerHTML=h;
 }
 
+function topEntries(data,limit=4){
+  return Object.entries(data||{}).sort((a,b)=>b[1]-a[1]).slice(0,limit);
+}
+
+function renderHero(stats,soc,attackMap,replayState){
+  const mode=String((stats&&stats.mode)||'live').toUpperCase();
+  const threatLevel=String((soc&&soc.threat_level)||'safe').toUpperCase();
+  const threatScore=Number((soc&&soc.threat_score)||0);
+  const incidentCount=Number((soc&&soc.incidents_open)||0);
+  const techniques=(attackMap&&attackMap.techniques)||[];
+  const killChain=(attackMap&&attackMap.kill_chain)||[];
+  const auditTrail=(soc&&soc.audit_trail)||{};
+  const modulesActive=((stats&&stats.modules_active)||[]).length;
+  const moduleCoverage=Math.round((modulesActive/Object.keys(MOD_CARD_MAP).length)*100);
+  const replayMode=(replayState&&replayState.mode)||'live';
+  const replayProgress=Math.round((replayState&&replayState.progress)||0);
+  const totalEvents=Number((stats&&stats.total_events)||0);
+  const watchItems=[];
+
+  document.getElementById('heroMode').textContent=mode;
+  document.getElementById('heroThreatLevel').textContent=threatLevel;
+  document.getElementById('heroReplaySession').textContent=(replayState&&replayState.session_id)||'-';
+  document.getElementById('heroTechniqueCount').textContent=String(techniques.length);
+
+  document.getElementById('heroThreatScore').textContent=threatScore.toFixed(1);
+  document.getElementById('heroCoverage').textContent=`${moduleCoverage}%`;
+  document.getElementById('heroChainDepth').textContent=String(killChain.length);
+  document.getElementById('heroTempo').textContent=replayMode==='replay' ? `${replayProgress}%` : totalEvents.toLocaleString();
+
+  document.getElementById('heroFocusBadge').textContent=incidentCount
+    ? `${incidentCount} active incidents`
+    : techniques.length
+      ? `${techniques.length} observed techniques`
+      : 'nominal';
+
+  document.getElementById('heroPressure').textContent=String(incidentCount);
+  document.getElementById('heroPressureMeta').textContent=incidentCount
+    ? 'Analyst attention required'
+    : 'No open incidents';
+
+  document.getElementById('heroIntegrity').textContent=auditTrail.valid ? 'LOCKED' : 'CHECK';
+  document.getElementById('heroIntegrityMeta').textContent=auditTrail.valid
+    ? 'Audit chain verified'
+    : 'Review telemetry integrity';
+
+  const anomalies=(soc&&soc.anomalies)||[];
+  if(anomalies.length){
+    watchItems.push(...anomalies.slice(-3).reverse().map((item)=>({
+      label:`Anomaly ${item.type||'spike'}`,
+      value:`${item.count} evt`,
+    })));
+  }
+  if(!watchItems.length){
+    const incidents=(soc&&soc.incidents)||[];
+    watchItems.push(...incidents.slice(0,3).map((item)=>({
+      label:item.family||item.module||'incident',
+      value:String(item.severity||'watch').toUpperCase(),
+    })));
+  }
+  if(!watchItems.length){
+    watchItems.push(...techniques.slice(0,3).map((item)=>({
+      label:item.name,
+      value:item.technique,
+    })));
+  }
+  if(!watchItems.length){
+    watchItems.push(
+      {label:'Nominal traffic', value:'LIVE'},
+      {label:'Awaiting incident chain', value:'IDLE'},
+    );
+  }
+
+  const watchlist=document.getElementById('heroWatchlist');
+  if(watchlist){
+    watchlist.innerHTML=watchItems.slice(0,3).map((item)=>`
+      <div class="hero-list-item">
+        <span>${escapeHtml(item.label)}</span>
+        <strong>${escapeHtml(item.value)}</strong>
+      </div>
+    `).join('');
+  }
+
+  const dominant=document.getElementById('heroDominantModules');
+  if(dominant){
+    const entries=topEntries((stats&&stats.events_by_module)||{},4);
+    dominant.innerHTML=entries.length
+      ? entries.map(([name,count])=>`<span class="hero-tag">${escapeHtml(name)} <strong>${count}</strong></span>`).join('')
+      : '<span class="hero-tag">No modules <strong>idle</strong></span>';
+  }
+
+  const brief=document.getElementById('heroBrief');
+  if(brief){
+    let message='Telemetry is online. Launch a replay or activate modules to illuminate the command surface.';
+    if(incidentCount){
+      message=`${incidentCount} incident(s) are open with ${techniques.length} ATT&CK technique(s) observed. Prioritize triage and contain the dominant family first.`;
+    }else if(replayMode==='replay'){
+      message=`Replay session ${(replayState&&replayState.session_id)||'-'} is active at ${replayProgress}% progression. Use it to reconstruct the kill chain and validate detections.`;
+    }else if(techniques.length){
+      message=`Live telemetry is mapping ${techniques.length} technique(s) across ${killChain.length} kill-chain stage(s). The dashboard is now operating at campaign view.`;
+    }
+    brief.textContent=message;
+  }
+}
+
 /* ════════════════════════════════════
    SOC MODE
 ════════════════════════════════════ */
@@ -1488,7 +2144,8 @@ async function refresh(){
     // Terminal
     renderTerminal(events);
 
-    // SOC / Replay / ATT&CK
+    // Command center
+    renderHero(stats,soc,attackMap,replayState);
     renderSoc(soc);
     renderReplay(replaySessions,replayState);
     renderAttackMap(attackMap);
