@@ -5,6 +5,29 @@ All notable changes to CyberSim6 will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-03-28
+
+### Added
+- WAF module with 50+ rules: CSRF, XXE, SSRF, Command Injection, Auth Bypass detection
+- Honeypot cross-trap AttackCorrelator with threat levels (LOW/MEDIUM/HIGH/CRITICAL)
+- Compliance weighted scoring with maturity levels and risk rating
+- OpenAPI 3.0.3 documentation + Swagger UI at /api/docs
+- Port scanner module
+- Attack chain scenarios with MITRE ATT&CK mapping
+- Interactive tutorial system
+- Password analyzer utility
+- Anomaly detection engine
+- Audit trail with hash-chain integrity
+- Threat scoring engine
+- PDF report generation
+
+### Changed
+- CI/CD pipeline: 3 parallel jobs (test with coverage >=70%, flake8 lint, bandit security scan)
+- Tests expanded from 436 to 662 (+210 new tests)
+
+### Fixed
+- Honeypot deadlock: threading.Lock replaced with RLock for reentrant locking
+
 ## [1.0.0] - 2026-03-18
 
 ### Added
