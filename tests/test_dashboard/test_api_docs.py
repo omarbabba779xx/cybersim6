@@ -264,6 +264,13 @@ class TestServeSwaggerUI:
         body = handler.wfile.getvalue().decode("utf-8")
         assert "/api/openapi.json" in body
 
+    def test_body_uses_only_local_assets(self):
+        handler = _FakeHandler()
+        serve_swagger_ui(handler)
+        body = handler.wfile.getvalue().decode("utf-8")
+        assert "cdn.jsdelivr" not in body
+        assert "fonts.googleapis" not in body
+
     def test_body_is_valid_html(self):
         handler = _FakeHandler()
         serve_swagger_ui(handler)

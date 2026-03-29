@@ -1,8 +1,5 @@
 """Tests for DDoS module (detection + HTTP flood)."""
 
-import time
-import pytest
-
 from cybersim.core.logging_engine import CyberSimLogger
 from cybersim.ddos.detection import DDoSDetector
 

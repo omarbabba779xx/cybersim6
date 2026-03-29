@@ -8,13 +8,11 @@ breakdown, capping, reset, and threat-level thresholds.
 from __future__ import annotations
 
 import threading
-import time
 from datetime import datetime, timedelta, timezone
-from unittest.mock import patch
 
 import pytest
 
-from cybersim.core.threat_score import ThreatEvent, ThreatLevel, ThreatScorer
+from cybersim.core.threat_score import ThreatLevel, ThreatScorer
 
 
 # ── ThreatLevel thresholds ────────────────────────────────────────────

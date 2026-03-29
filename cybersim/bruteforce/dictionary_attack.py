@@ -3,8 +3,11 @@ CyberSim6 - Dictionary Attack Module
 Brute force attack using a wordlist against a local auth server.
 """
 
+from __future__ import annotations
+
 import time
 from pathlib import Path
+from typing import Any
 
 import requests as http_requests
 
@@ -18,13 +21,19 @@ class DictionaryAttack(BaseModule):
     MODULE_TYPE = "attack"
     MODULE_NAME = "bruteforce_dictionary"
 
-    def _validate_safety(self):
+    def _validate_safety(self) -> None:
         url = self.config.get("target_url", "http://127.0.0.1:9090/login")
         validate_url_localhost(url)
 
-    def run(self, target_url: str = None, username: str = None,
-            wordlist: str = None, max_attempts: int = None,
-            delay_ms: int = None, **kwargs):
+    def run(
+        self,
+        target_url: str | None = None,
+        username: str | None = None,
+        wordlist: str | None = None,
+        max_attempts: int | None = None,
+        delay_ms: int | None = None,
+        **kwargs: Any,
+    ) -> str | None:
         """
         Launch dictionary attack.
 
@@ -130,7 +139,7 @@ class DictionaryAttack(BaseModule):
 
         return found_password
 
-    def stop(self):
+    def stop(self) -> None:
         self._running = False
         self.log_event("attack_stopped", {
             "message": "Dictionary attack stopped by user.",

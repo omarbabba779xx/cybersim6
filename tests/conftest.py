@@ -4,7 +4,6 @@ Shared fixtures for all test modules.
 """
 
 import pytest
-from pathlib import Path
 
 from cybersim.core.logging_engine import CyberSimLogger
 

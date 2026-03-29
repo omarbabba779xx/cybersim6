@@ -14,7 +14,6 @@ from cybersim.honeypot.honeypot import (
     HoneypotAnalyzer,
     HoneypotServer,
     HoneypotTrap,
-    ThreatLevel,
 )
 
 
@@ -443,10 +442,18 @@ class TestAttackCorrelator:
         assert "threats" in report
         assert report["total_ips"] == 1
         threat = report["threats"]["10.0.0.1"]
-        for key in ("threat_level", "traps_visited", "trap_types",
-                     "interaction_count", "first_seen", "last_seen",
-                     "is_recon", "is_brute_force", "is_lateral_movement",
-                     "timeline"):
+        for key in (
+            "threat_level",
+            "traps_visited",
+            "trap_types",
+            "interaction_count",
+            "first_seen",
+            "last_seen",
+            "is_recon",
+            "is_brute_force",
+            "is_lateral_movement",
+            "timeline",
+        ):
             assert key in threat, f"Missing key: {key}"
 
     def test_attack_timeline_chronological(self, correlator):
@@ -463,8 +470,9 @@ class TestAttackCorrelator:
     def test_top_threats_ranking(self, correlator):
         """get_top_threats ranks IPs by severity then interaction count."""
         # IP-A: 6 traps => CRITICAL
-        for i, p in enumerate(["/admin/login", "/.env", "/api/v1/users",
-                                "/phpmyadmin/", "/wp-admin/", "/search"]):
+        for i, p in enumerate(
+            ["/admin/login", "/.env", "/api/v1/users", "/phpmyadmin/", "/wp-admin/", "/search"]
+        ):
             correlator.record(self._interaction("10.0.0.1", p, ts=1000.0 + i * 10))
 
         # IP-B: 1 trap => LOW

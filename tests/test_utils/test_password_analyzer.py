@@ -1,8 +1,6 @@
 """Tests for cybersim.utils.password_analyzer module."""
 
-import pytest
-
-from cybersim.utils.password_analyzer import PasswordAnalyzer, PasswordAnalysis
+from cybersim.utils.password_analyzer import PasswordAnalyzer
 
 
 class TestPasswordAnalyzer:

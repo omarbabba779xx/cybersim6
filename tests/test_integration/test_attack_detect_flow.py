@@ -1,4 +1,4 @@
-"""Integration tests: full attack + detection pipeline for all 6 modules."""
+"""Integration tests: full attack + detection pipeline for the 6 attack modules."""
 import pytest
 from cybersim.core.logging_engine import CyberSimLogger
 
@@ -135,7 +135,7 @@ class TestRansomwareIntegration:
     def test_encrypted_dir_detected(self, logger, config):
         import tempfile
         from pathlib import Path
-        from cybersim.ransomware.detection import RansomwareDetector, calculate_entropy
+        from cybersim.ransomware.detection import RansomwareDetector
         import os
 
         detector = RansomwareDetector(config=config, logger=logger)

@@ -49,7 +49,6 @@ def setup_module(module):
 
 
 def teardown_module(module):
-    global _dashboard, _tmpdir
     if _dashboard:
         _dashboard.stop()
     if _tmpdir:

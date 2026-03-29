@@ -8,9 +8,8 @@ the specialised NetworkAnomalyDetector.
 
 from __future__ import annotations
 
-import math
 import threading
-from datetime import datetime, timezone
+from datetime import datetime
 
 import pytest
 

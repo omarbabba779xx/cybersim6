@@ -19,7 +19,7 @@ import socket
 from pathlib import Path
 
 
-ALLOWED_TARGETS: set[str] = {"127.0.0.1", "localhost", "::1", "0.0.0.0"}  # nosec B104
+LOOPBACK_TARGETS: set[str] = {"127.0.0.1", "localhost", "::1"}  # nosec B104
 SANDBOX_MARKER: str = ".cybersim_sandbox"
 
 
@@ -35,15 +35,31 @@ def validate_target_ip(target: str) -> None:
         SafetyError: If the target is external or unresolvable.
     """
     try:
-        resolved = socket.gethostbyname(target)
-        addr = ipaddress.ip_address(resolved)
+        literal = ipaddress.ip_address(target)
+        addresses = [literal]
+    except ValueError:
+        try:
+            infos = socket.getaddrinfo(target, None)
+        except socket.gaierror:
+            raise SafetyError(f"BLOCKED: Cannot resolve hostname '{target}'.")
+
+        addresses = []
+        for info in infos:
+            resolved = info[4][0]
+            try:
+                addresses.append(ipaddress.ip_address(resolved))
+            except ValueError:
+                continue
+
+        if not addresses:
+            raise SafetyError(f"BLOCKED: Cannot resolve hostname '{target}'.")
+
+    for addr in addresses:
         if not addr.is_loopback:
             raise SafetyError(
-                f"BLOCKED: Target {target} ({resolved}) is not a loopback address. "
+                f"BLOCKED: Target {target} ({addr}) is not a loopback address. "
                 "CyberSim6 only operates on localhost targets."
             )
-    except socket.gaierror:
-        raise SafetyError(f"BLOCKED: Cannot resolve hostname '{target}'.")
 
 
 def validate_sandbox_directory(path: Path) -> None:
@@ -90,11 +106,18 @@ def validate_url_localhost(url: str) -> None:
     from urllib.parse import urlparse
     parsed = urlparse(url)
     hostname = parsed.hostname or ""
-    if hostname not in ALLOWED_TARGETS:
-        try:
-            validate_target_ip(hostname)
-        except SafetyError:
-            raise SafetyError(
-                f"BLOCKED: URL '{url}' does not target localhost. "
-                "CyberSim6 only operates on local targets."
-            )
+    if not hostname:
+        raise SafetyError(
+            f"BLOCKED: URL '{url}' is missing a hostname. "
+            "CyberSim6 only operates on local targets."
+        )
+
+    try:
+        validate_target_ip(hostname)
+    except SafetyError as exc:
+        if hostname in LOOPBACK_TARGETS:
+            raise
+        raise SafetyError(
+            f"BLOCKED: URL '{url}' does not target localhost. "
+            "CyberSim6 only operates on local targets."
+        ) from exc

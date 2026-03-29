@@ -5,6 +5,26 @@ All notable changes to CyberSim6 will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.1] - 2026-03-29
+
+### Added
+- Runtime HTTP tests for local training servers (DDoS target, auth, phishing, XSS, SQLi)
+- Round-trip ransomware encryption/decryption tests with integrity verification
+- Cross-platform Makefile helpers via `tools/project_tasks.py`
+- `pre-commit` configuration with repository hygiene hooks
+- Targeted `mypy` configuration for maintained typed modules
+
+### Changed
+- Coverage gate raised from 50% to 85%
+- Test suite expanded to 704 tests with 90% measured coverage
+- CLI banner simplified to plain ASCII for reliable Windows terminals
+- Dashboard and API docs no longer depend on external CDN assets
+
+### Fixed
+- Version metadata aligned across package, CLI, OpenAPI, dashboard, and docs
+- Safety validation now handles IPv6 loopback correctly and blocks `0.0.0.0` as a target
+- Local training servers now support ephemeral ports and clean shutdowns for tests and demos
+
 ## [1.1.0] - 2026-03-28
 
 ### Added

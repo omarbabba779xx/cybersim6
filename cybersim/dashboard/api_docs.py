@@ -1,8 +1,10 @@
 """
 CyberSim6 - Dashboard REST API Documentation
 
-OpenAPI 3.0 specification and Swagger UI for the CyberSim6 dashboard endpoints.
+OpenAPI 3.0 specification and local interactive docs for the CyberSim6 dashboard endpoints.
 """
+
+from cybersim import __version__
 
 OPENAPI_SPEC: dict = {
     "openapi": "3.0.3",
@@ -13,7 +15,7 @@ OPENAPI_SPEC: dict = {
             "Provides real-time access to security events, SOC metrics, "
             "MITRE ATT&CK mapping, timeline data, and session replay controls."
         ),
-        "version": "1.0.0",
+        "version": __version__,
         "contact": {
             "name": "CyberSim6 Team",
         },
@@ -413,12 +415,12 @@ OPENAPI_SPEC: dict = {
         "/api/docs": {
             "get": {
                 "tags": ["docs"],
-                "summary": "Swagger UI",
-                "description": "Serves an interactive Swagger UI page for exploring the API.",
+                "summary": "Interactive API docs",
+                "description": "Serves a local interactive documentation page for exploring the API.",
                 "operationId": "getSwaggerUI",
                 "responses": {
                     "200": {
-                        "description": "Swagger UI HTML page",
+                        "description": "Interactive API documentation HTML page",
                         "content": {
                             "text/html": {
                                 "schema": {"type": "string"},
@@ -607,7 +609,7 @@ def get_openapi_spec() -> dict:
 
 
 def serve_swagger_ui(handler) -> None:
-    """Serve a Swagger UI HTML page via the given HTTP request handler.
+    """Serve the local API documentation page via the given HTTP request handler.
 
     Args:
         handler: A BaseHTTPRequestHandler instance used to write the response.
@@ -626,27 +628,350 @@ _SWAGGER_HTML = """\
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CyberSim6 API Documentation</title>
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui.css">
 <style>
-  body { margin: 0; background: #0d1117; }
-  #swagger-ui .topbar { display: none; }
-  .swagger-ui .info .title { color: #c9d1d9; }
-  .swagger-ui .info p, .swagger-ui .info li {color: #8b949e; }
+  :root {
+    color-scheme: dark;
+    --bg: #0d1117;
+    --panel: #111827;
+    --panel-border: #1f2937;
+    --text: #e5e7eb;
+    --muted: #9ca3af;
+    --accent: #38bdf8;
+    --accent-soft: rgba(56, 189, 248, 0.16);
+    --success: #22c55e;
+    --warning: #f59e0b;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    background:
+      radial-gradient(circle at top, rgba(56, 189, 248, 0.12), transparent 32%),
+      linear-gradient(180deg, #0b1220 0%, var(--bg) 100%);
+    color: var(--text);
+  }
+
+  .shell {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 32px 20px 64px;
+  }
+
+  .hero {
+    padding: 24px;
+    border: 1px solid var(--panel-border);
+    border-radius: 18px;
+    background: rgba(17, 24, 39, 0.9);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+  }
+
+  .eyebrow {
+    display: inline-block;
+    margin-bottom: 12px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    margin: 0 0 8px;
+    font-size: clamp(28px, 4vw, 42px);
+  }
+
+  .hero p {
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.6;
+    max-width: 780px;
+  }
+
+  .meta {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-top: 20px;
+  }
+
+  .meta-card {
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(15, 23, 42, 0.88);
+    border: 1px solid var(--panel-border);
+  }
+
+  .meta-card strong {
+    display: block;
+    margin-bottom: 4px;
+    color: #f8fafc;
+    font-size: 14px;
+  }
+
+  .meta-card span {
+    color: var(--muted);
+    font-size: 13px;
+  }
+
+  #swagger-ui {
+    display: grid;
+    gap: 16px;
+    margin-top: 24px;
+  }
+
+  .status {
+    padding: 16px 18px;
+    border-radius: 14px;
+    border: 1px solid var(--panel-border);
+    background: rgba(15, 23, 42, 0.88);
+    color: var(--muted);
+  }
+
+  .endpoint {
+    overflow: hidden;
+    border: 1px solid var(--panel-border);
+    border-radius: 16px;
+    background: rgba(17, 24, 39, 0.92);
+  }
+
+  .endpoint summary {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    padding: 18px 20px;
+  }
+
+  .endpoint summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .method {
+    min-width: 62px;
+    text-align: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(34, 197, 94, 0.16);
+    color: var(--success);
+    font-weight: 700;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+  }
+
+  .path {
+    font-family: Consolas, "Courier New", monospace;
+    color: #f8fafc;
+    font-size: 15px;
+  }
+
+  .summary {
+    color: var(--muted);
+    font-size: 14px;
+  }
+
+  .endpoint-body {
+    padding: 0 20px 20px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  .endpoint-body h3 {
+    margin: 18px 0 8px;
+    color: #f8fafc;
+    font-size: 15px;
+  }
+
+  .tag-list,
+  .server-list,
+  .parameter-list,
+  .response-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .pill,
+  .param,
+  .response {
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.92);
+    border: 1px solid var(--panel-border);
+    font-size: 13px;
+  }
+
+  .response code,
+  .param code,
+  .server-list code {
+    font-family: Consolas, "Courier New", monospace;
+  }
+
+  .empty {
+    color: var(--muted);
+    font-style: italic;
+  }
+
+  .footer-note {
+    margin-top: 12px;
+    color: var(--warning);
+    font-size: 13px;
+  }
 </style>
 </head>
 <body>
-<div id="swagger-ui"></div>
-<script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5/swagger-ui-bundle.js"></script>
+<main class="shell">
+  <section class="hero">
+    <span class="eyebrow">Local API Explorer</span>
+    <h1>CyberSim6 API Documentation</h1>
+    <p>
+      This page is rendered entirely from local assets and fetches its schema from
+      <code>/api/openapi.json</code>. It gives you a quick interactive overview of
+      the dashboard API without relying on external CDNs.
+    </p>
+    <div class="meta" id="meta"></div>
+  </section>
+
+  <section id="swagger-ui">
+    <div class="status">Loading local API documentation...</div>
+  </section>
+</main>
+
 <script>
-SwaggerUIBundle({
-  url: "/api/openapi.json",
-  dom_id: "#swagger-ui",
-  deepLinking: true,
-  presets: [
-    SwaggerUIBundle.presets.apis,
-    SwaggerUIBundle.SwaggerUIStandalonePreset,
-  ],
-  layout: "BaseLayout",
+function createElement(tag, className, text) {
+  const el = document.createElement(tag);
+  if (className) {
+    el.className = className;
+  }
+  if (text !== undefined) {
+    el.textContent = text;
+  }
+  return el;
+}
+
+function createMetaCard(title, value) {
+  const card = createElement("div", "meta-card");
+  card.appendChild(createElement("strong", "", title));
+  card.appendChild(createElement("span", "", value));
+  return card;
+}
+
+function renderMeta(spec) {
+  const meta = document.getElementById("meta");
+  meta.innerHTML = "";
+  meta.appendChild(createMetaCard("Version", spec.info.version));
+  meta.appendChild(createMetaCard("OpenAPI", spec.openapi));
+  meta.appendChild(createMetaCard("Endpoints", String(Object.keys(spec.paths || {}).length)));
+  meta.appendChild(createMetaCard("Tags", String((spec.tags || []).length)));
+}
+
+function renderParameters(parameters) {
+  if (!parameters || parameters.length === 0) {
+    return createElement("p", "empty", "No query parameters documented.");
+  }
+
+  const list = createElement("div", "parameter-list");
+  parameters.forEach((param) => {
+    const item = createElement("div", "param");
+    item.innerHTML = "<code>" + param.name + "</code> in " + param.in + (param.required ? " (required)" : "");
+    list.appendChild(item);
+  });
+  return list;
+}
+
+function renderResponses(responses) {
+  const entries = Object.entries(responses || {});
+  if (entries.length === 0) {
+    return createElement("p", "empty", "No responses documented.");
+  }
+
+  const list = createElement("div", "response-list");
+  entries.forEach(([code, details]) => {
+    const item = createElement("div", "response");
+    item.innerHTML = "<code>" + code + "</code> " + (details.description || "");
+    list.appendChild(item);
+  });
+  return list;
+}
+
+function renderOperation(path, method, operation) {
+  const wrapper = document.createElement("details");
+  wrapper.className = "endpoint";
+
+  const summary = document.createElement("summary");
+  summary.appendChild(createElement("span", "method", method.toUpperCase()));
+  summary.appendChild(createElement("span", "path", path));
+  summary.appendChild(createElement("span", "summary", operation.summary || ""));
+  wrapper.appendChild(summary);
+
+  const body = createElement("div", "endpoint-body");
+  body.appendChild(createElement("p", "", operation.description || "No description provided."));
+
+  body.appendChild(createElement("h3", "", "Tags"));
+  const tagList = createElement("div", "tag-list");
+  (operation.tags || []).forEach((tag) => {
+    tagList.appendChild(createElement("span", "pill", tag));
+  });
+  body.appendChild(tagList.childElementCount ? tagList : createElement("p", "empty", "No tags."));
+
+  body.appendChild(createElement("h3", "", "Parameters"));
+  body.appendChild(renderParameters(operation.parameters));
+
+  body.appendChild(createElement("h3", "", "Responses"));
+  body.appendChild(renderResponses(operation.responses));
+  wrapper.appendChild(body);
+
+  return wrapper;
+}
+
+function renderSpec(spec) {
+  renderMeta(spec);
+  const root = document.getElementById("swagger-ui");
+  root.innerHTML = "";
+
+  const serverBox = createElement("div", "status");
+  serverBox.appendChild(createElement("strong", "", "Servers"));
+  const serverList = createElement("div", "server-list");
+  (spec.servers || []).forEach((server) => {
+    const item = createElement("span", "pill");
+    item.innerHTML = "<code>" + server.url + "</code> " + (server.description || "");
+    serverList.appendChild(item);
+  });
+  serverBox.appendChild(serverList.childElementCount ? serverList : createElement("p", "empty", "No servers documented."));
+  root.appendChild(serverBox);
+
+  Object.entries(spec.paths || {}).forEach(([path, methods]) => {
+    Object.entries(methods).forEach(([method, operation]) => {
+      root.appendChild(renderOperation(path, method, operation));
+    });
+  });
+
+  const note = createElement("p", "footer-note", "OpenAPI source: /api/openapi.json");
+  root.appendChild(note);
+}
+
+async function loadSpec() {
+  const response = await fetch("/api/openapi.json", { headers: { "Accept": "application/json" } });
+  if (!response.ok) {
+    throw new Error("Unable to load OpenAPI spec (" + response.status + ")");
+  }
+  const spec = await response.json();
+  renderSpec(spec);
+}
+
+loadSpec().catch((error) => {
+  const root = document.getElementById("swagger-ui");
+  root.innerHTML = "";
+  const status = createElement("div", "status");
+  status.textContent = "Failed to load API docs: " + error.message;
+  root.appendChild(status);
 });
 </script>
 </body>

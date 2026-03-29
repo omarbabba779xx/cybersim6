@@ -3,7 +3,10 @@ CyberSim6 - HTTP Flood Simulation
 Simulates an HTTP Flood attack using concurrent requests on localhost only.
 """
 
+from __future__ import annotations
+
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Any
 
 import requests as http_requests
 
@@ -17,11 +20,11 @@ class HTTPFloodAttack(BaseModule):
     MODULE_TYPE = "attack"
     MODULE_NAME = "ddos_http_flood"
 
-    def _validate_safety(self):
+    def _validate_safety(self) -> None:
         url = self.config.get("target_url", "http://127.0.0.1:8080")
         validate_url_localhost(url)
 
-    def _send_request(self, url: str, request_id: int):
+    def _send_request(self, url: str, request_id: int) -> dict[str, Any]:
         """Send a single HTTP request."""
         try:
             resp = http_requests.get(url, timeout=5)
@@ -29,8 +32,13 @@ class HTTPFloodAttack(BaseModule):
         except http_requests.RequestException as e:
             return {"id": request_id, "status_code": 0, "success": False, "error": str(e)}
 
-    def run(self, target_url: str = None, request_count: int = None,
-            threads: int = None):
+    def run(
+        self,
+        target_url: str | None = None,
+        request_count: int | None = None,
+        threads: int | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
         """
         Launch HTTP Flood simulation.
 
@@ -89,8 +97,14 @@ class HTTPFloodAttack(BaseModule):
             "fail_count": fail_count,
             "status": "info",
         })
+        return {
+            "target": target_url,
+            "request_count": request_count,
+            "success_count": success_count,
+            "fail_count": fail_count,
+        }
 
-    def stop(self):
+    def stop(self) -> None:
         """Stop the HTTP Flood attack."""
         self._running = False
         self.log_event("attack_stopped", {

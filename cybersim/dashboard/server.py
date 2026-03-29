@@ -11,6 +11,8 @@ from pathlib import Path
 from urllib.parse import urlparse, parse_qs
 from collections import Counter
 
+from cybersim import __version__
+
 from cybersim.core.anomaly_detection import AnomalyType, StatisticalDetector
 from cybersim.core.audit_trail import AuditTrail
 from cybersim.core.logging_engine import CyberSimLogger
@@ -469,9 +471,6 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CyberSim6 — Threat Intelligence Dashboard</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 :root {
   --bg:        #050810;
@@ -499,7 +498,7 @@ DASHBOARD_HTML = r"""<!DOCTYPE html>
 
 html,body{
   height:100%;
-  font-family:'Inter',sans-serif;
+  font-family:system-ui,-apple-system,'Segoe UI',sans-serif;
   background:var(--bg);
   color:var(--text);
   overflow-x:hidden;
@@ -1607,7 +1606,7 @@ footer{
 </main>
 
 <footer>
-  <span>▸ CyberSim6 v1.0.0</span>
+  <span>▸ CyberSim6 v__CYBERSIM_VERSION__</span>
   <span>▸ EMSI Tanger — 4IIR 2025-2026</span>
   <span>▸ Framework: NIST/MITRE ATT&amp;CK</span>
   <span id="footerTime">▸ --:--:--</span>
@@ -1635,7 +1634,7 @@ footer{
     ctx.fillStyle='rgba(5,8,16,0.05)';
     ctx.fillRect(0,0,W,H);
     ctx.fillStyle='#00ff41';
-    ctx.font='13px JetBrains Mono,monospace';
+    ctx.font='13px ui-monospace,monospace';
     for(let i=0;i<drops.length;i++){
       const c=CHARS[Math.floor(Math.random()*CHARS.length)];
       ctx.fillText(c,i*16,drops[i]*16);
@@ -1748,11 +1747,166 @@ const CHART_DEFAULTS={
   borderColor:'transparent',
 };
 
+class Chart {
+  static defaults={color:'rgba(200,216,240,0.7)',borderColor:'transparent'};
+
+  constructor(canvas, config){
+    this.canvas=canvas;
+    this.ctx=canvas.getContext('2d');
+    this.config=config||{};
+    this.type=this.config.type||'line';
+    this.data=this.config.data||{labels:[],datasets:[]};
+    this.options=this.config.options||{};
+    this.render();
+    window.addEventListener('resize',()=>this.render());
+  }
+
+  update(){
+    this.render();
+  }
+
+  render(){
+    if(!this.canvas || !this.ctx) return;
+    const ratio=window.devicePixelRatio||1;
+    const rect=this.canvas.getBoundingClientRect();
+    const width=Math.max(180,Math.floor(rect.width||this.canvas.width||320));
+    const height=Math.max(180,Math.floor(rect.height||this.canvas.height||220));
+    if(this.canvas.width!==width*ratio || this.canvas.height!==height*ratio){
+      this.canvas.width=width*ratio;
+      this.canvas.height=height*ratio;
+    }
+    this.ctx.setTransform(ratio,0,0,ratio,0,0);
+    this.ctx.clearRect(0,0,width,height);
+    if(this.type==='doughnut') this._renderDoughnut(width,height);
+    else this._renderLine(width,height);
+  }
+
+  _renderLine(width,height){
+    const ctx=this.ctx;
+    const dataset=(this.data.datasets||[])[0]||{};
+    const points=(dataset.data||[]).map(v=>Number(v)||0);
+    const labels=this.data.labels||[];
+    const left=34,right=12,top=16,bottom=24;
+    const chartW=Math.max(10,width-left-right);
+    const chartH=Math.max(10,height-top-bottom);
+    const max=Math.max(...points,1);
+
+    ctx.strokeStyle='rgba(26,34,54,0.8)';
+    ctx.lineWidth=1;
+    for(let i=0;i<4;i++){
+      const y=top+(chartH*i/3);
+      ctx.beginPath();
+      ctx.moveTo(left,y);
+      ctx.lineTo(width-right,y);
+      ctx.stroke();
+    }
+
+    ctx.fillStyle=Chart.defaults.color;
+    ctx.font='10px ui-monospace,monospace';
+    if(!points.length){
+      ctx.fillText('No telemetry',left+8,top+chartH/2);
+      return;
+    }
+
+    const coords=points.map((value,index)=>{
+      const x=left+(points.length===1 ? chartW/2 : chartW*index/(points.length-1));
+      const y=top+chartH-((value/max)*chartH);
+      return {x,y,value};
+    });
+
+    ctx.beginPath();
+    ctx.moveTo(coords[0].x, top+chartH);
+    coords.forEach((point)=>ctx.lineTo(point.x,point.y));
+    ctx.lineTo(coords[coords.length-1].x, top+chartH);
+    ctx.closePath();
+    ctx.fillStyle=dataset.backgroundColor||'rgba(0,212,255,0.08)';
+    ctx.fill();
+
+    ctx.beginPath();
+    coords.forEach((point,index)=>{
+      if(index===0) ctx.moveTo(point.x,point.y);
+      else ctx.lineTo(point.x,point.y);
+    });
+    ctx.strokeStyle=dataset.borderColor||'#00d4ff';
+    ctx.lineWidth=2;
+    ctx.stroke();
+
+    ctx.fillStyle=dataset.pointBackgroundColor||dataset.borderColor||'#00d4ff';
+    coords.forEach((point)=>{
+      ctx.beginPath();
+      ctx.arc(point.x,point.y,3,0,Math.PI*2);
+      ctx.fill();
+    });
+
+    const labelStep=Math.max(1,Math.ceil(labels.length/6));
+    labels.forEach((label,index)=>{
+      if(index%labelStep!==0 && index!==labels.length-1) return;
+      const point=coords[index];
+      ctx.fillStyle=Chart.defaults.color;
+      ctx.fillText(String(label).slice(11,16), Math.max(left, point.x-12), height-8);
+    });
+  }
+
+  _renderDoughnut(width,height){
+    const ctx=this.ctx;
+    const dataset=(this.data.datasets||[])[0]||{};
+    const labels=this.data.labels||[];
+    const values=(dataset.data||[]).map(v=>Number(v)||0);
+    const total=values.reduce((sum,value)=>sum+value,0);
+
+    ctx.fillStyle=Chart.defaults.color;
+    ctx.font='10px ui-monospace,monospace';
+    if(!total){
+      ctx.fillText('No active modules',16,height/2);
+      return;
+    }
+
+    const radius=Math.min(width*0.32,height*0.38);
+    const inner=radius*0.58;
+    const cx=Math.min(width*0.32, radius+20);
+    const cy=height/2;
+    const colors=(dataset.backgroundColor||['#00d4ff','#ff0040','#ffd700','#b44fff','#00ff41','#ff6b00']);
+
+    let angle=-Math.PI/2;
+    values.forEach((value,index)=>{
+      const slice=(value/total)*Math.PI*2;
+      ctx.beginPath();
+      ctx.moveTo(cx,cy);
+      ctx.arc(cx,cy,radius,angle,angle+slice);
+      ctx.closePath();
+      ctx.fillStyle=colors[index%colors.length];
+      ctx.fill();
+      angle+=slice;
+    });
+
+    ctx.beginPath();
+    ctx.fillStyle='#080c14';
+    ctx.arc(cx,cy,inner,0,Math.PI*2);
+    ctx.fill();
+
+    ctx.fillStyle='#e8f0ff';
+    ctx.font='bold 18px ui-monospace,monospace';
+    ctx.textAlign='center';
+    ctx.fillText(String(total),cx,cy+6);
+    ctx.textAlign='left';
+
+    const legendX=Math.min(width*0.58, cx+radius+26);
+    let legendY=Math.max(24,cy-radius+10);
+    labels.forEach((label,index)=>{
+      ctx.fillStyle=colors[index%colors.length];
+      ctx.fillRect(legendX,legendY,10,10);
+      ctx.fillStyle=Chart.defaults.color;
+      ctx.font='10px ui-monospace,monospace';
+      ctx.fillText(`${label}: ${values[index]}`, legendX+16, legendY+9);
+      legendY+=16;
+    });
+  }
+}
+
 function initCharts(){
   Chart.defaults.color=CHART_DEFAULTS.color;
   Chart.defaults.borderColor='rgba(26,34,54,0.8)';
 
-  // Timeline line chart
   timelineChart=new Chart(document.getElementById('timelineChart'),{
     type:'line',
     data:{labels:[],datasets:[{
@@ -1761,37 +1915,19 @@ function initCharts(){
       borderWidth:2,pointRadius:3,pointBackgroundColor:'#00d4ff',
       fill:true,tension:0.4,
     }]},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{legend:{display:false}},
-      scales:{
-        x:{ticks:{font:{family:'JetBrains Mono',size:10},maxTicksLimit:6},grid:{color:'rgba(26,34,54,0.8)'}},
-        y:{ticks:{font:{family:'JetBrains Mono',size:10}},grid:{color:'rgba(26,34,54,0.8)'},beginAtZero:true},
-      },
-      animation:{duration:600},
-    },
+    options:{responsive:true,maintainAspectRatio:false},
   });
 
-  // Doughnut
   doughnutChart=new Chart(document.getElementById('doughnutChart'),{
     type:'doughnut',
     data:{labels:[],datasets:[{data:[],
       backgroundColor:['#ff0040','#ffd700','#00d4ff','#b44fff','#00ff41','#ff6b00'],
       borderWidth:0,hoverOffset:6,
     }]},
-    options:{
-      responsive:true,maintainAspectRatio:false,
-      plugins:{
-        legend:{position:'right',labels:{font:{family:'JetBrains Mono',size:10},boxWidth:12,padding:12}},
-      },
-      animation:{duration:600},
-    },
+    options:{responsive:true,maintainAspectRatio:false},
   });
 }
 
-/* ════════════════════════════════════
-   MODULE CARDS
-════════════════════════════════════ */
 function renderModuleCards(eventsByModule){
   const el=document.getElementById('moduleCards');
   if(!el) return;
@@ -2189,3 +2325,6 @@ setInterval(refresh,REFRESH_MS);
 </script>
 </body>
 </html>"""
+
+
+DASHBOARD_HTML = DASHBOARD_HTML.replace("__CYBERSIM_VERSION__", __version__)

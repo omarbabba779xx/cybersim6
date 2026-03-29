@@ -7,12 +7,13 @@ EDUCATIONAL PURPOSE ONLY.
 import json
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from typing import Any
 from urllib.parse import urlparse, parse_qs
 
 from cybersim.core.logging_engine import CyberSimLogger
 
 # In-memory storage for stored XSS
-stored_comments = []
+stored_comments: list[dict[str, str]] = []
 
 INDEX_HTML = """<!DOCTYPE html>
 <html>
@@ -76,9 +77,9 @@ DOM_XSS_HTML = """<!DOCTYPE html>
 class XSSVulnerableHandler(BaseHTTPRequestHandler):
     """HTTP handler with intentional XSS vulnerabilities."""
 
-    logger: CyberSimLogger = None
+    logger: CyberSimLogger | None = None
     lock = threading.Lock()
-    request_log = []
+    request_log: list[dict[str, Any]] = []
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -230,6 +231,7 @@ class XSSVulnerableServer:
         XSSVulnerableHandler.logger = self.logger
         XSSVulnerableHandler.request_log = []
         self.server = HTTPServer((self.host, self.port), XSSVulnerableHandler)
+        self.host, self.port = self.server.server_address[:2]
         self._thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self._thread.start()
         print(f"[+] XSS vulnerable app started on http://{self.host}:{self.port}")
@@ -237,7 +239,12 @@ class XSSVulnerableServer:
     def stop(self):
         if self.server:
             self.server.shutdown()
+            self.server.server_close()
+            if self._thread:
+                self._thread.join(timeout=2)
         print(f"[-] XSS vulnerable app stopped. Requests: {len(XSSVulnerableHandler.request_log)}")
+        self.server = None
+        self._thread = None
 
     def get_request_log(self):
         return XSSVulnerableHandler.request_log

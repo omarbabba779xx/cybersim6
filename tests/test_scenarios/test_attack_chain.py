@@ -7,7 +7,6 @@ from cybersim.scenarios.attack_chain import (
     APTScenario1_DataBreach,
     APTScenario2_WebCompromise,
     APTScenario3_RansomwareAttack,
-    AttackScenario,
     ChainResult,
     ChainStep,
     KillChainPhase,

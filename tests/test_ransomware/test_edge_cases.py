@@ -1,5 +1,4 @@
 """Edge case tests for ransomware detection — entropy, large files, key rotation."""
-import math
 import pytest
 from cybersim.ransomware.detection import calculate_entropy, _entropy_cached, RansomwareDetector
 from cybersim.core.logging_engine import CyberSimLogger

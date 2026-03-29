@@ -13,6 +13,7 @@ from pathlib import Path
 if sys.platform == "win32":
     os.environ["PYTHONIOENCODING"] = "utf-8"
 
+from cybersim import __version__
 from cybersim.core.config_loader import load_config, get_module_config
 from cybersim.core.logging_engine import CyberSimLogger
 from cybersim.core.reporter import print_summary
@@ -33,15 +34,10 @@ class C:
 
 
 BANNER = f"""
-{C.BLUE}{C.BOLD}   ██████╗██╗   ██╗██████╗ ███████╗██████╗ {C.RED}███████╗██╗███╗   ███╗ ██████╗
-{C.BLUE}  ██╔════╝╚██╗ ██╔╝██╔══██╗██╔════╝██╔══██╗{C.RED}██╔════╝██║████╗ ████║██╔════╝
-{C.BLUE}  ██║      ╚████╔╝ ██████╔╝█████╗  ██████╔╝{C.RED}███████╗██║██╔████╔██║███████╗
-{C.BLUE}  ██║       ╚██╔╝  ██╔══██╗██╔══╝  ██╔══██╗{C.RED}╚════██║██║██║╚██╔╝██║██╔═══╝
-{C.BLUE}  ╚██████╗   ██║   ██████╔╝███████╗██║  ██║{C.RED}███████║██║██║ ╚═╝ ██║╚██████╗
-{C.BLUE}   ╚═════╝   ╚═╝   ╚═════╝ ╚══════╝╚═╝  ╚═╝{C.RED}╚══════╝╚═╝╚═╝     ╚═╝ ╚═════╝{C.RESET}
-{C.DIM}   ──────────────────────────────────────────────────────────────{C.RESET}
-{C.CYAN}   10 Attack & Defense Modules  {C.DIM}|{C.RESET}  {C.GREEN}Detection & Analysis  {C.DIM}|{C.RESET}  {C.YELLOW}Sandbox Only{C.RESET}
-{C.DIM}   EMSI Tanger 4IIR  |  Projet Academique 2025-2026{C.RESET}
+{C.BLUE}{C.BOLD}   CyberSim6{C.RESET}
+{C.DIM}   --------------------------------------------------------------{C.RESET}
+{C.CYAN}   15 Modules  {C.DIM}|{C.RESET}  {C.GREEN}Detection & Analysis  {C.DIM}|{C.RESET}  {C.YELLOW}Sandbox Only{C.RESET}
+{C.DIM}   EMSI Tanger 4IIR  |  Projet Academique 2025-2026  |  v{__version__}{C.RESET}
 """
 
 MODULE_ICONS = {
@@ -71,7 +67,7 @@ def create_parser():
         prog="cybersim",
         description="CyberSim6 - Plateforme de Simulation de Cyberattaques (EDUCATIONAL ONLY)",
     )
-    parser.add_argument("--version", action="version", version="%(prog)s 1.0.0")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     parser.add_argument("--config", type=str, default=None, help="Path to config YAML")
 
     subparsers = parser.add_subparsers(dest="module", help="Module to run")
@@ -217,7 +213,7 @@ def create_parser():
     pw_parser.add_argument("--password", required=True, help="Password to analyze")
 
     # --- Demo ---
-    demo_parser = subparsers.add_parser("demo", help="Run automated demo of all 6 modules")
+    demo_parser = subparsers.add_parser("demo", help="Run automated demo of all 6 attack modules")
     demo_parser.add_argument("--no-dashboard", action="store_true", help="Disable web dashboard")
 
     # --- Dashboard ---
