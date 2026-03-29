@@ -1,6 +1,5 @@
 """Tests for cybersim.core.config_loader module."""
 
-import pytest
 from cybersim.core.config_loader import load_config, get_module_config
 
 

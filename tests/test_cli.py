@@ -52,3 +52,14 @@ def test_cli_dispatches_new_modules(monkeypatch, argv, handler_name):
     cli.main()
 
     assert called["value"] == handler_name
+
+
+def test_cli_without_module_prints_banner_and_help(monkeypatch, capsys):
+    """The default CLI entry should remain safe on plain terminals."""
+    monkeypatch.setattr(sys, "argv", ["cybersim"])
+
+    cli.main()
+
+    output = capsys.readouterr().out
+    assert "15 Modules" in output
+    assert "Module to run" in output

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cybersim6"
-version = "1.0.0"
-description = "Plateforme de simulation de 6 cyberattaques en sandbox isole - EMSI Tanger 4IIR"
+version = "1.1.1"
+description = "Plateforme educative de simulation de cyberattaques, defense et analyse en sandbox isole"
 readme = "README.md"
 license = "MIT"
 authors = [
@@ -42,6 +42,9 @@ dev = [
     "pytest-cov>=4.0",
     "flake8>=7.0",
     "bandit>=1.7",
+    "mypy>=1.11",
+    "pre-commit>=3.8",
+    "types-requests>=2.32",
 ]
 all = [
     "cybersim6[network,dev]",
@@ -70,7 +73,7 @@ omit = [
 ]
 
 [tool.coverage.report]
-fail_under = 50
+fail_under = 85
 show_missing = true
 exclude_lines = [
     "pragma: no cover",
@@ -82,6 +85,27 @@ exclude_lines = [
 max-line-length = 120
 extend-ignore = ["E501", "W503", "E203", "W391"]
 exclude = [".git", "__pycache__", "build", "dist", "*.egg-info"]
+
+[tool.mypy]
+python_version = "3.10"
+files = [
+    "cybersim/core/base_module.py",
+    "cybersim/core/safety.py",
+    "cybersim/dashboard/api_docs.py",
+    "cybersim/ddos/http_flood.py",
+    "cybersim/ddos/target_server.py",
+    "cybersim/bruteforce/auth_server.py",
+    "cybersim/bruteforce/dictionary_attack.py",
+    "cybersim/phishing/phishing_server.py",
+    "cybersim/xss/xss_attack.py",
+    "cybersim/xss/vulnerable_app.py",
+    "cybersim/sqli/injection_attack.py",
+    "cybersim/sqli/vulnerable_server.py",
+]
+warn_unused_configs = true
+ignore_missing_imports = true
+check_untyped_defs = true
+pretty = true
 
 [tool.setuptools.package-data]
 "cybersim.bruteforce" = ["wordlists/*.txt"]

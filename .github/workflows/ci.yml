@@ -38,7 +38,7 @@ jobs:
           --junitxml=test-results.xml
           --cov=cybersim
           --cov-report=term-missing
-          --cov-fail-under=50
+          --cov-fail-under=85
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
@@ -57,11 +57,14 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install flake8
-        run: pip install flake8
+      - name: Install lint and typing tools
+        run: pip install flake8 mypy types-requests
 
       - name: Run flake8 lint
         run: flake8 cybersim/ --max-line-length=120 --extend-ignore=E501,W503,E203,W391
+
+      - name: Run mypy type checks
+        run: mypy --config-file pyproject.toml
 
   security:
     runs-on: ubuntu-latest

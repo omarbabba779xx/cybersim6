@@ -1,7 +1,5 @@
 """Tests for SQL Injection module (detection)."""
 
-import pytest
-
 from cybersim.core.logging_engine import CyberSimLogger
 from cybersim.sqli.detection import SQLInjectionDetector
 

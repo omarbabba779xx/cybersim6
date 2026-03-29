@@ -10,7 +10,7 @@ control, and structured event logging through the unified engine.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from typing import Any
+from typing import Any, ClassVar
 
 from cybersim.core.logging_engine import CyberSimLogger
 
@@ -25,8 +25,8 @@ class BaseModule(ABC):
         logger: Shared :class:`CyberSimLogger` instance for event recording.
     """
 
-    MODULE_TYPE: str | None = None
-    MODULE_NAME: str | None = None
+    MODULE_TYPE: ClassVar[str] = ""
+    MODULE_NAME: ClassVar[str] = ""
 
     def __init__(self, config: dict[str, Any], logger: CyberSimLogger) -> None:
         self.config = config
@@ -44,7 +44,7 @@ class BaseModule(ABC):
         pass
 
     @abstractmethod
-    def run(self, **kwargs: Any) -> None:
+    def run(self, **kwargs: Any) -> Any:
         """Execute the module's primary function (attack or detection)."""
         pass
 

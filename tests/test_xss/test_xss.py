@@ -1,7 +1,5 @@
 """Tests for XSS module (detection + sanitization)."""
 
-import pytest
-
 from cybersim.core.logging_engine import CyberSimLogger
 from cybersim.xss.detection import XSSDetector, sanitize_input
 

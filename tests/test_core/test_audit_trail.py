@@ -3,9 +3,7 @@
 import json
 import threading
 
-import pytest
-
-from cybersim.core.audit_trail import AuditTrail, AuditEntry
+from cybersim.core.audit_trail import AuditTrail
 
 
 class TestAuditTrail:

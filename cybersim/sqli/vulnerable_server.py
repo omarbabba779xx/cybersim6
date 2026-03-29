@@ -9,6 +9,7 @@ import json
 import sqlite3
 import threading
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from typing import Any
 from urllib.parse import urlparse, parse_qs
 
 from cybersim.core.logging_engine import CyberSimLogger
@@ -87,10 +88,10 @@ INDEX_HTML = """<!DOCTYPE html>
 class VulnerableHandler(BaseHTTPRequestHandler):
     """HTTP handler with intentional SQL injection vulnerabilities."""
 
-    db_conn: sqlite3.Connection = None
-    logger: CyberSimLogger = None
+    db_conn: sqlite3.Connection | None = None
+    logger: CyberSimLogger | None = None
     lock = threading.Lock()
-    query_log = []
+    query_log: list[dict[str, Any]] = []
 
     def do_GET(self):
         parsed = urlparse(self.path)
@@ -131,6 +132,7 @@ class VulnerableHandler(BaseHTTPRequestHandler):
 
         try:
             with self.lock:
+                assert self.db_conn is not None
                 cursor = self.db_conn.cursor()
                 cursor.execute(sql)
                 rows = cursor.fetchall()
@@ -161,6 +163,7 @@ class VulnerableHandler(BaseHTTPRequestHandler):
 
         try:
             with self.lock:
+                assert self.db_conn is not None
                 cursor = self.db_conn.cursor()
                 cursor.execute(sql)
                 user = cursor.fetchone()
@@ -186,6 +189,7 @@ class VulnerableHandler(BaseHTTPRequestHandler):
 
         try:
             with self.lock:
+                assert self.db_conn is not None
                 cursor = self.db_conn.cursor()
                 cursor.execute(sql)
                 rows = cursor.fetchall()
@@ -210,6 +214,7 @@ class VulnerableHandler(BaseHTTPRequestHandler):
 
         try:
             with self.lock:
+                assert self.db_conn is not None
                 cursor = self.db_conn.cursor()
                 cursor.execute(sql)
                 rows = cursor.fetchall()
@@ -270,6 +275,7 @@ class VulnerableSQLServer:
         VulnerableHandler.logger = self.logger
         VulnerableHandler.query_log = []
         self.server = HTTPServer((self.host, self.port), VulnerableHandler)
+        self.host, self.port = self.server.server_address[:2]
         self._thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self._thread.start()
         print(f"[+] Vulnerable SQL server started on http://{self.host}:{self.port}")
@@ -277,9 +283,15 @@ class VulnerableSQLServer:
     def stop(self):
         if self.server:
             self.server.shutdown()
+            self.server.server_close()
+            if self._thread:
+                self._thread.join(timeout=2)
         if self._conn:
             self._conn.close()
         print(f"[-] Vulnerable SQL server stopped. Queries logged: {len(VulnerableHandler.query_log)}")
+        self.server = None
+        self._thread = None
+        self._conn = None
 
     def get_query_log(self):
         return VulnerableHandler.query_log

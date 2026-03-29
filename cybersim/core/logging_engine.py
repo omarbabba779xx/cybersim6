@@ -31,7 +31,7 @@ class CyberSimLogger:
         self.log_dir = Path(log_dir) if log_dir else Path("./logs")
         self.log_dir.mkdir(parents=True, exist_ok=True)
         self.session_id = session_id or uuid.uuid4().hex[:8]
-        self.events = []
+        self.events: list[dict[str, Any]] = []
 
         # Console logger
         self._logger = logging.getLogger(f"cybersim.{self.session_id}")

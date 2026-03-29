@@ -1,12 +1,9 @@
 """Tests for the Web Application Firewall module."""
 
 import re
-import pytest
-
 from cybersim.core.logging_engine import CyberSimLogger
 from cybersim.waf.firewall import (
     WAFAction,
-    WAFResult,
     WAFRule,
     WAFSeverity,
     WebApplicationFirewall,
@@ -605,6 +602,11 @@ class TestWebApplicationFirewall:
     def test_new_category_stats_present(self) -> None:
         """All new category stat keys should exist in the stats dict."""
         stats = self.waf.get_stats()
-        for key in ("csrf_blocked", "xxe_blocked", "auth_bypass_blocked",
-                     "command_injection_blocked", "ssrf_blocked"):
+        for key in (
+            "csrf_blocked",
+            "xxe_blocked",
+            "auth_bypass_blocked",
+            "command_injection_blocked",
+            "ssrf_blocked",
+        ):
             assert key in stats, f"Missing stat key: {key}"

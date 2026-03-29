@@ -8,7 +8,7 @@
 
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-676%20passed-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-704%20passed-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="#"><img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License"></a>
   <a href="#"><img src="https://img.shields.io/badge/EMSI-Tanger%204IIR-red?style=for-the-badge" alt="EMSI"></a>
   <a href="#"><img src="https://img.shields.io/badge/framework-MITRE%20ATT%26CK-orange?style=for-the-badge" alt="MITRE"></a>
@@ -61,7 +61,7 @@
 </details>
 
 <details open>
-<summary><strong>Tests</strong> - 676 tests passed</summary>
+<summary><strong>Tests</strong> - 704 tests passed</summary>
 <p align="center">
   <img src="docs/screenshots/tests_passed.png" alt="CyberSim6 Test Suite Status" width="800">
 </p>
@@ -82,11 +82,12 @@
 - **WAF Avance** : 50+ regles couvrant CSRF, XXE, SSRF, Command Injection, Auth Bypass
 - **Honeypot Intelligent** : AttackCorrelator multi-trap avec detection de recon, brute-force et lateral movement
 - **Conformite** : Scoring pondere ISO 27001, NIST CSF, RGPD avec niveaux de maturite et risk rating
-- **Dashboard Temps Reel** : Visualisation live + API documentee (Swagger UI + OpenAPI 3.0.3)
+- **Dashboard Temps Reel** : Visualisation live + API documentee locale (OpenAPI 3.0.3 + explorateur integre)
+- **Dashboard 100% Local** : aucune police ou librairie chargee depuis un CDN externe
 - **Scenarios MITRE ATT&CK** : Chaines d'attaque completes avec mapping tactiques/techniques
-- **CI/CD** : 3 categories de jobs (8 checks au total) avec tests, lint et security
+- **CI/CD** : 3 categories de jobs (8 checks au total) avec tests, lint + typecheck et security
 - **Mode Demo Automatise** : Une seule commande pour tout tester
-- **676 Tests** : Suite de tests complete (unit + integration + patterns + compliance + WAF + honeypot)
+- **704 Tests + 90% Coverage** : Suite de tests complete (unit + integration + HTTP runtime + compliance + WAF + honeypot)
 
 ---
 
@@ -118,7 +119,7 @@ CyberSim6 CLI
 |   `-- Dashboard
 |
 +-- Dashboard Web UI
-|   +-- Swagger UI
+|   +-- Local API Docs
 |   `-- API REST
 |
 `-- Core Services
@@ -165,7 +166,7 @@ CyberSim6 CLI
 | 12 | **Compliance** | Audit ISO 27001, NIST CSF, RGPD - scoring pondere, niveaux de maturite (NOT_IMPLEMENTED / PARTIAL / COMPLIANT), risk rating |
 | 13 | **Report** | Generation de rapports PDF (`pdf_report.py`) |
 | 14 | **Password Analyzer** | Analyse de robustesse des mots de passe (`password_analyzer.py`) |
-| 15 | **Dashboard** | Interface web temps reel + API REST documentee (Swagger UI) |
+| 15 | **Dashboard** | Interface web temps reel + API REST documentee (OpenAPI + explorateur local) |
 
 ---
 
@@ -273,7 +274,7 @@ Le dashboard web offre une visualisation temps reel :
 - **Graphiques** : Events par module et par status
 - **Live Feed** : Flux d'evenements en temps reel (auto-refresh 2s)
 - **API REST** : `/api/stats`, `/api/events`, `/api/timeline`
-- **Documentation API** : Swagger UI sur `/api/docs`, specification OpenAPI 3.0.3 sur `/api/openapi.json`
+- **Documentation API** : explorateur local sur `/api/docs`, specification OpenAPI 3.0.3 sur `/api/openapi.json`
 
 Acces : `http://127.0.0.1:8888/dashboard`
 
@@ -322,7 +323,7 @@ python -m pytest tests/test_cli.py -v
 python -m pytest tests/ --cov=cybersim --cov-report=html
 ```
 
-**676 tests** couvrant : safety, logging, config, reporter, perf, base_module, detection (6 modules), patterns, integration, dashboard API, WAF (50+ regles), honeypot, scanner, scenarios, tutorial, compliance, audit trail, anomaly detection, threat score, PDF report, password analyzer.
+**704 tests** couvrent : safety, logging, config, reporter, perf, base_module, detection (6 modules), patterns, integration, dashboard API, WAF (50+ regles), honeypot, scanner, scenarios, tutorial, compliance, audit trail, anomaly detection, threat score, PDF report, password analyzer, et les runtimes d'attaque SQLi/XSS.
 
 ---
 
@@ -332,14 +333,14 @@ Le pipeline CI/CD GitHub Actions execute **3 categories de jobs** :
 
 | Job | Outil | Seuil |
 |-----|-------|-------|
-| **Tests** | `pytest --cov` | Couverture >= 50% |
-| **Lint** | `flake8` | Zero erreur |
+| **Tests** | `pytest --cov` | Couverture >= 85% |
+| **Lint** | `flake8` + `mypy` | Zero erreur |
 | **Security** | `bandit` | Zero vulnerabilite |
 
 ```yaml
 # Declenchement : push / pull_request sur main
 # Python : 3.10, 3.11, 3.12 (matrice)
-# 8 checks au total : 6 jobs de test (matrice) + lint + security
+# 8 checks au total : 6 jobs de test (matrice) + lint/typecheck + security
 ```
 
 ---
@@ -401,7 +402,7 @@ cybersim6/
 |   |-- utils/                     # Utilitaires
 |   |   `-- password_analyzer.py   #   Analyse de mots de passe
 |   |-- dashboard/                 # Dashboard Web
-|   |   `-- server.py              #   Serveur HTTP + Swagger UI + API REST
+|   |   `-- server.py              #   Serveur HTTP + API docs locales + API REST
 |   |-- demo.py                    # Mode demo automatise
 |   `-- cli.py                     # CLI unifie (argparse)
 |-- config/
@@ -409,7 +410,7 @@ cybersim6/
 |-- sandbox/
 |   |-- setup_sandbox.py           # Script de creation sandbox
 |   `-- test_files/                # Fichiers fictifs
-|-- tests/                         # 676 tests pytest
+|-- tests/                         # 704 tests pytest
 |   |-- test_core/                 #   Core (safety, logging, compliance, audit, ...)
 |   |-- test_ddos/                 #   DDoS
 |   |-- test_sqli/                 #   SQL Injection
@@ -456,7 +457,7 @@ cybersim6/
 make help        # Afficher toutes les commandes
 make install     # Installer le projet
 make dev         # Installer avec outils de dev
-make test        # Lancer les 676 tests
+make test        # Lancer les 704 tests
 make coverage    # Tests + rapport de couverture HTML
 make demo        # Lancer la demo automatisee
 make dashboard   # Demarrer le dashboard web

@@ -1,7 +1,5 @@
 """Tests for Phishing module (detection)."""
 
-import pytest
-
 from cybersim.core.logging_engine import CyberSimLogger
 from cybersim.phishing.detection import PhishingDetector
 

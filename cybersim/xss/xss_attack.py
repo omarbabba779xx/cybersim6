@@ -4,7 +4,11 @@ Tests Reflected, Stored, and DOM-based XSS against the vulnerable app.
 EDUCATIONAL PURPOSE ONLY.
 """
 
+from __future__ import annotations
+
 import time
+from typing import Any
+
 import requests as http_requests
 
 from cybersim.core.base_module import BaseModule
@@ -42,11 +46,11 @@ class XSSAttack(BaseModule):
     MODULE_TYPE = "attack"
     MODULE_NAME = "xss_attack"
 
-    def _validate_safety(self):
+    def _validate_safety(self) -> None:
         base_url = self.config.get("target_url", "http://127.0.0.1:8082")
         validate_url_localhost(base_url)
 
-    def run(self, target_url: str = None, attack_type: str = "all", **kwargs):
+    def run(self, target_url: str | None = None, attack_type: str = "all", **kwargs: Any) -> dict[str, Any]:
         """
         Run XSS attacks against the vulnerable app.
 
@@ -65,7 +69,7 @@ class XSSAttack(BaseModule):
             "status": "warning",
         })
 
-        results = {"total": 0, "injected": 0, "findings": []}
+        results: dict[str, Any] = {"total": 0, "injected": 0, "findings": []}
 
         if attack_type in ("reflected", "all"):
             self._test_reflected_xss(base_url, results)
@@ -86,7 +90,7 @@ class XSSAttack(BaseModule):
         })
         return results
 
-    def _test_reflected_xss(self, base_url, results):
+    def _test_reflected_xss(self, base_url: str, results: dict[str, Any]) -> None:
         """Test reflected XSS on search and error endpoints."""
         self.log_event("phase_started", {
             "message": "Testing Reflected XSS...",
@@ -134,7 +138,7 @@ class XSSAttack(BaseModule):
                     self.log_event("error", {"message": str(e), "status": "error"})
                 time.sleep(0.05)
 
-    def _test_stored_xss(self, base_url, results):
+    def _test_stored_xss(self, base_url: str, results: dict[str, Any]) -> None:
         """Test stored XSS via guestbook comments."""
         self.log_event("phase_started", {
             "message": "Testing Stored XSS...",
@@ -177,7 +181,7 @@ class XSSAttack(BaseModule):
                 self.log_event("error", {"message": str(e), "status": "error"})
             time.sleep(0.05)
 
-    def _test_dom_xss(self, base_url, results):
+    def _test_dom_xss(self, base_url: str, results: dict[str, Any]) -> None:
         """Test DOM-based XSS (note: full verification requires a browser)."""
         self.log_event("phase_started", {
             "message": "Testing DOM-based XSS (server-side check only)...",
@@ -214,7 +218,7 @@ class XSSAttack(BaseModule):
             except http_requests.RequestException as e:
                 self.log_event("error", {"message": str(e), "status": "error"})
 
-    def stop(self):
+    def stop(self) -> None:
         self._running = False
         self.log_event("attack_stopped", {
             "message": "XSS attack stopped.",

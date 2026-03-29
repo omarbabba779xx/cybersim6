@@ -25,7 +25,7 @@ SANITIZE_CASES = [
     ("<svg onload=alert(1)>", "<svg"),
     ("normal text", None),  # safe input passes through
     ("", None),             # empty is safe
-    ("   spaces   ", None), # whitespace preserved
+    ("   spaces   ", None),  # whitespace preserved
     ("<SCRIPT>ALERT(1)</SCRIPT>", "<SCRIPT>"),
     ("<<script>alert(1)<</script>", "<<"),
     ("<scr<script>ipt>alert(1)</script>", "<scr"),

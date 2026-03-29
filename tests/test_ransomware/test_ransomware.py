@@ -1,7 +1,6 @@
 """Tests for Ransomware module (safety guard, detection, entropy)."""
 
 import pytest
-from pathlib import Path
 
 from cybersim.core.logging_engine import CyberSimLogger
 from cybersim.core.safety import SafetyError

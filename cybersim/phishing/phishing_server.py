@@ -9,6 +9,7 @@ import json
 import threading
 import time
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from typing import Any
 from urllib.parse import parse_qs
 
 from cybersim.core.logging_engine import CyberSimLogger
@@ -148,9 +149,9 @@ CAPTURE_RESPONSE = """<!DOCTYPE html>
 class PhishingHandler(BaseHTTPRequestHandler):
     """Handles phishing page serving and credential capture."""
 
-    logger: CyberSimLogger = None
+    logger: CyberSimLogger | None = None
     template: str = "corporate_login"
-    captured_credentials: list = []
+    captured_credentials: list[dict[str, Any]] = []
     lock = threading.Lock()
 
     def do_GET(self):
@@ -251,6 +252,7 @@ class PhishingServer:
         PhishingHandler.template = self.template
         PhishingHandler.captured_credentials = []
         self.server = HTTPServer((self.host, self.port), PhishingHandler)
+        self.host, self.port = self.server.server_address[:2]
         self._thread = threading.Thread(target=self.server.serve_forever, daemon=True)
         self._thread.start()
         template_name = PHISHING_TEMPLATES.get(self.template, {}).get("name", self.template)
@@ -261,8 +263,13 @@ class PhishingServer:
     def stop(self):
         if self.server:
             self.server.shutdown()
+            self.server.server_close()
+            if self._thread:
+                self._thread.join(timeout=2)
         captured = len(PhishingHandler.captured_credentials)
         print(f"[-] Phishing server stopped. Credentials captured: {captured}")
+        self.server = None
+        self._thread = None
 
     def get_captured(self):
         return PhishingHandler.captured_credentials

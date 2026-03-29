@@ -1,8 +1,6 @@
 """Tests for cybersim.core.logging_engine module."""
 
 import json
-import pytest
-from pathlib import Path
 
 from cybersim.core.logging_engine import CyberSimLogger
 

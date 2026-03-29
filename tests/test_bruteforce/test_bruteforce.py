@@ -1,7 +1,5 @@
 """Tests for Brute Force module (detection)."""
 
-import pytest
-
 from cybersim.core.logging_engine import CyberSimLogger
 from cybersim.bruteforce.detection import BruteForceDetector
 

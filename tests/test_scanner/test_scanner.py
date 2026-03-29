@@ -1,8 +1,6 @@
 """Tests for the Port Scanner module."""
 
 import socket
-import threading
-import time
 
 import pytest
 

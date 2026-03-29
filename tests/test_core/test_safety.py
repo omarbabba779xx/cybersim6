@@ -19,9 +19,16 @@ class TestValidateTargetIP:
     def test_localhost_allowed(self):
         validate_target_ip("localhost")
 
+    def test_ipv6_loopback_allowed(self):
+        validate_target_ip("::1")
+
     def test_external_ip_blocked(self):
         with pytest.raises(SafetyError, match="not a loopback"):
             validate_target_ip("8.8.8.8")
+
+    def test_unspecified_ip_blocked(self):
+        with pytest.raises(SafetyError, match="not a loopback"):
+            validate_target_ip("0.0.0.0")
 
     def test_unresolvable_blocked(self):
         with pytest.raises(SafetyError, match="Cannot resolve"):
@@ -68,6 +75,13 @@ class TestValidateURLLocalhost:
 
     def test_localhost_name_allowed(self):
         validate_url_localhost("http://localhost:9090/login")
+
+    def test_ipv6_localhost_url_allowed(self):
+        validate_url_localhost("http://[::1]:8888/dashboard")
+
+    def test_unspecified_url_blocked(self):
+        with pytest.raises(SafetyError, match="does not target localhost"):
+            validate_url_localhost("http://0.0.0.0:8080")
 
     def test_external_url_blocked(self):
         with pytest.raises(SafetyError, match="does not target localhost"):

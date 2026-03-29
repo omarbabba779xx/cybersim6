@@ -4,7 +4,11 @@ Demonstrates various SQL injection techniques against the vulnerable server.
 EDUCATIONAL PURPOSE ONLY.
 """
 
+from __future__ import annotations
+
 import time
+from typing import Any
+
 import requests as http_requests
 
 from cybersim.core.base_module import BaseModule
@@ -43,11 +47,11 @@ class SQLInjectionAttack(BaseModule):
     MODULE_TYPE = "attack"
     MODULE_NAME = "sqli_attack"
 
-    def _validate_safety(self):
+    def _validate_safety(self) -> None:
         base_url = self.config.get("target_url", "http://127.0.0.1:8081")
         validate_url_localhost(base_url)
 
-    def run(self, target_url: str = None, attack_type: str = "all", **kwargs):
+    def run(self, target_url: str | None = None, attack_type: str = "all", **kwargs: Any) -> dict[str, Any]:
         """
         Run SQL injection attacks against the vulnerable server.
 
@@ -66,7 +70,7 @@ class SQLInjectionAttack(BaseModule):
             "status": "warning",
         })
 
-        results = {"total": 0, "successful": 0, "failed": 0, "findings": []}
+        results: dict[str, Any] = {"total": 0, "successful": 0, "failed": 0, "findings": []}
 
         if attack_type in ("auth_bypass", "all"):
             self._test_auth_bypass(base_url, results)
@@ -91,7 +95,7 @@ class SQLInjectionAttack(BaseModule):
 
         return results
 
-    def _test_auth_bypass(self, base_url, results):
+    def _test_auth_bypass(self, base_url: str, results: dict[str, Any]) -> None:
         """Test authentication bypass via SQL injection."""
         self.log_event("phase_started", {
             "message": "Testing authentication bypass...",
@@ -134,7 +138,7 @@ class SQLInjectionAttack(BaseModule):
                 self.log_event("error", {"message": str(e), "status": "error"})
             time.sleep(0.1)
 
-    def _test_union_injection(self, base_url, results):
+    def _test_union_injection(self, base_url: str, results: dict[str, Any]) -> None:
         """Test UNION-based SQL injection to extract data."""
         self.log_event("phase_started", {
             "message": "Testing UNION-based injection...",
@@ -185,7 +189,7 @@ class SQLInjectionAttack(BaseModule):
                 self.log_event("error", {"message": str(e), "status": "error"})
             time.sleep(0.1)
 
-    def _test_error_based(self, base_url, results):
+    def _test_error_based(self, base_url: str, results: dict[str, Any]) -> None:
         """Test error-based SQL injection."""
         self.log_event("phase_started", {
             "message": "Testing error-based injection...",
@@ -227,7 +231,7 @@ class SQLInjectionAttack(BaseModule):
                 self.log_event("error", {"message": str(e), "status": "error"})
             time.sleep(0.1)
 
-    def _test_blind_boolean(self, base_url, results):
+    def _test_blind_boolean(self, base_url: str, results: dict[str, Any]) -> None:
         """Test blind boolean-based SQL injection."""
         self.log_event("phase_started", {
             "message": "Testing blind boolean-based injection...",
@@ -250,7 +254,9 @@ class SQLInjectionAttack(BaseModule):
                     timeout=5,
                 )
 
-                response_data = resp.json() if resp.headers.get("Content-Type", "").startswith("application/json") else {}
+                response_data: dict[str, Any] = (
+                    resp.json() if resp.headers.get("Content-Type", "").startswith("application/json") else {}
+                )
                 has_data = len(response_data.get("data", [])) > 0
 
                 if "1=1" in payload and "1=2" not in payload:
@@ -291,7 +297,7 @@ class SQLInjectionAttack(BaseModule):
                 self.log_event("error", {"message": str(e), "status": "error"})
             time.sleep(0.1)
 
-    def stop(self):
+    def stop(self) -> None:
         self._running = False
         self.log_event("attack_stopped", {
             "message": "SQL Injection attack stopped.",
