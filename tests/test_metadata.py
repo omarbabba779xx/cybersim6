@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-import tomllib
+import re
 
 from cybersim import __version__
 from cybersim.dashboard.api_docs import OPENAPI_SPEC
@@ -11,9 +11,11 @@ from cybersim.dashboard.server import DASHBOARD_HTML
 
 
 def test_project_version_is_consistent():
-    pyproject = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+    pyproject_text = Path("pyproject.toml").read_text(encoding="utf-8")
+    match = re.search(r'^version = "([^"]+)"$', pyproject_text, flags=re.MULTILINE)
 
-    assert pyproject["project"]["version"] == __version__
+    assert match is not None
+    assert match.group(1) == __version__
     assert OPENAPI_SPEC["info"]["version"] == __version__
 
 
