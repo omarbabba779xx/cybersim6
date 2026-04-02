@@ -5,6 +5,26 @@ All notable changes to CyberSim6 will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-04-02
+
+### Added
+- **Incident Response Module** (`cybersim incident-response`): NIST SP 800-61 guided workflow with 6 phases (Preparation → Identification → Containment → Eradication → Recovery → Lessons Learned), SLA tracking, and per-attack-type playbooks
+- **Digital Forensics Module** (`cybersim forensics`): Timeline reconstruction, SHA-256 evidence hashing with chain of custody, IOC extraction (attack types, source IPs, endpoints, payloads)
+- **Remediation Engine** (`cybersim remediation`): Prioritized remediation recommendations mapped to CWE/MITRE for all 6 attack types with actionable steps and references
+- **Detection Metrics Engine**: Precision, Recall, F1-Score, Accuracy tracking per detection module with formatted reports
+- **Base Detector class**: Common base for all detection modules with metrics integration and run-loop infrastructure
+- **Anomaly Detection CLI** (`cybersim anomaly`): Expose statistical anomaly detector via CLI with configurable window/threshold
+- **Attack Chain Mermaid Diagrams**: Generate Mermaid flowcharts for all scenarios with kill-chain phase coloring and MITRE technique annotations
+- **Architecture Documentation** (`docs/architecture.md`): 3 Mermaid diagrams — module architecture, event flow, and safety framework layers
+- **CLI Input Validation**: Port validation (1-65535), URL loopback enforcement, positive integer checks on all CLI arguments
+- **Configurable Detection Thresholds**: All detection parameters now configurable via `config/default.yaml` (DDoS threshold, bruteforce limits, anomaly Z-score, IR SLA targets)
+- 41 new tests covering all new modules (detection metrics, remediation, base detector, incident response, forensics, Mermaid generation)
+
+### Changed
+- Test suite expanded from 704 to 745 tests
+- Total modules increased from 15 to 19 (added IR, Forensics, Remediation, Anomaly CLI)
+- Config file enriched with detection, anomaly, and IR parameters
+
 ## [1.1.1] - 2026-03-29
 
 ### Added

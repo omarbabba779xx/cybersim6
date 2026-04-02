@@ -29,14 +29,22 @@ bruteforce:
 sqli:
   target_url: "http://127.0.0.1:8081"
   server_port: 8081
+  detection:
+    patterns_enabled: true
+    log_payloads: true
 
 xss:
   target_url: "http://127.0.0.1:8082"
   server_port: 8082
+  detection:
+    patterns_enabled: true
+    log_payloads: true
 
 phishing:
   server_port: 8083
   default_template: "corporate_login"
+  detection:
+    risk_threshold: 0.6
 
 ransomware:
   sandbox_dir: "./sandbox/test_files"
@@ -49,3 +57,19 @@ ransomware:
   max_files: 50
   max_file_size_mb: 10
   keep_originals: true
+  detection:
+    entropy_threshold: 7.0
+    scan_interval: 5
+
+# Anomaly detection parameters
+anomaly:
+  window_size: 100
+  z_threshold: 2.5
+  learning_period: 20
+
+# Incident Response SLA (minutes)
+incident_response:
+  sla_critical: 15
+  sla_high: 30
+  sla_medium: 60
+  sla_low: 240

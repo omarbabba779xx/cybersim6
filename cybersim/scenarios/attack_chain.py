@@ -524,3 +524,65 @@ class ScenarioRunner:
         for key in self.SCENARIOS:
             results.append(self.run_scenario(key))
         return results
+
+    @staticmethod
+    def generate_mermaid(scenario: AttackScenario, result: ChainResult | None = None) -> str:
+        """Generate a Mermaid diagram for an attack scenario.
+
+        Args:
+            scenario: The scenario to diagram.
+            result: Optional execution result to annotate success/failure.
+
+        Returns:
+            A Mermaid graph definition string.
+        """
+        lines: list[str] = ["graph LR"]
+        phase_styles: dict[str, str] = {
+            "reconnaissance": "fill:#06b6d4,color:#fff",
+            "weaponization": "#d946ef,color:#fff",
+            "delivery": "#eab308,color:#000",
+            "exploitation": "#ef4444,color:#fff",
+            "installation": "#f97316,color:#fff",
+            "command_and_control": "#3b82f6,color:#fff",
+            "actions_on_objectives": "#22c55e,color:#fff",
+        }
+
+        prev_id = None
+        for idx, step in enumerate(scenario.kill_chain):
+            node_id = f"S{idx}"
+            label = f"{step.phase.value}\\n{step.module}\\n{step.description[:40]}"
+            if step.mitre_technique:
+                label += f"\\n({step.mitre_technique})"
+
+            # Determine node shape based on result
+            if result and idx < len(result.timeline):
+                ok = result.timeline[idx].get("success", True)
+                shape_l, shape_r = ("((", "))") if ok else ("{{", "}}")
+            else:
+                shape_l, shape_r = ("[", "]")
+
+            lines.append(f"    {node_id}{shape_l}\"{label}\"{shape_r}")
+
+            if prev_id is not None:
+                arrow = "-->" if (not result or result.timeline[idx - 1].get("success", True)) else "-.->|FAILED|"
+                lines.append(f"    {prev_id} {arrow} {node_id}")
+            prev_id = node_id
+
+        # Add styles
+        for idx, step in enumerate(scenario.kill_chain):
+            style = phase_styles.get(step.phase.value, "fill:#6b7280,color:#fff")
+            lines.append(f"    style S{idx} {style}")
+
+        return "\n".join(lines)
+
+    def generate_all_diagrams(self) -> dict[str, str]:
+        """Generate Mermaid diagrams for all scenarios.
+
+        Returns:
+            Dict mapping scenario key to Mermaid string.
+        """
+        diagrams: dict[str, str] = {}
+        for key, cls in self.SCENARIOS.items():
+            scenario = cls()
+            diagrams[key] = self.generate_mermaid(scenario)
+        return diagrams

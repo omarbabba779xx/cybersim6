@@ -3,12 +3,12 @@
 </p>
 
 <p align="center">
-  <strong>Plateforme de Simulation de Cyberattaques en Sandbox Isole - 15 Modules</strong>
+  <strong>Plateforme de Simulation de Cyberattaques en Sandbox Isole - 19 Modules</strong>
 </p>
 
 <p align="center">
   <a href="#"><img src="https://img.shields.io/badge/python-3.10%2B-blue?style=for-the-badge&logo=python&logoColor=white" alt="Python"></a>
-  <a href="#"><img src="https://img.shields.io/badge/tests-704%20passed-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
+  <a href="#"><img src="https://img.shields.io/badge/tests-745%20passed-brightgreen?style=for-the-badge&logo=pytest&logoColor=white" alt="Tests"></a>
   <a href="#"><img src="https://img.shields.io/badge/license-MIT-green?style=for-the-badge" alt="License"></a>
   <a href="#"><img src="https://img.shields.io/badge/EMSI-Tanger%204IIR-red?style=for-the-badge" alt="EMSI"></a>
   <a href="#"><img src="https://img.shields.io/badge/framework-MITRE%20ATT%26CK-orange?style=for-the-badge" alt="MITRE"></a>
@@ -61,7 +61,7 @@
 </details>
 
 <details open>
-<summary><strong>Tests</strong> - 704 tests passed</summary>
+<summary><strong>Tests</strong> - 745 tests passed</summary>
 <p align="center">
   <img src="https://raw.githubusercontent.com/omarbabba779xx/cybersim6/main/docs/screenshots/tests_passed.png" alt="CyberSim6 Test Suite Status" width="800">
 </p>
@@ -71,23 +71,27 @@
 
 ## A propos
 
-**CyberSim6** est une plateforme educative de simulation de cyberattaques developpee dans le cadre du projet academique EMSI Tanger (4IIR, 2025-2026). Elle permet de simuler, detecter et analyser des cyberattaques a travers **15 modules** (6 attaque + 3 defense + 6 utilitaires) dans un environnement sandbox completement isole.
+**CyberSim6** est une plateforme educative de simulation de cyberattaques developpee dans le cadre du projet academique EMSI Tanger (4IIR, 2025-2026). Elle permet de simuler, detecter et analyser des cyberattaques a travers **19 modules** (6 attaque + 3 defense + 10 utilitaires) dans un environnement sandbox completement isole.
 
 > **Objectif pedagogique** : Comprendre les mecanismes d'attaque pour mieux s'en defendre.
 
 ### Pourquoi CyberSim6 ?
 
 - **100% Sandbox** : Toutes les attaques ciblent uniquement `localhost` avec 7 couches de securite
-- **15 Modules** : 6 modules d'attaque, 3 de defense (WAF, Honeypot, Scanner) et 6 utilitaires (Tutorial, Scenarios, Compliance, Report, Password Analyzer, Dashboard)
+- **19 Modules** : 6 modules d'attaque, 3 de defense (WAF, Honeypot, Scanner) et 10 utilitaires (Tutorial, Scenarios, Compliance, Report, Password Analyzer, Dashboard, Incident Response, Forensics, Remediation, Anomaly)
 - **WAF Avance** : 50+ regles couvrant CSRF, XXE, SSRF, Command Injection, Auth Bypass
 - **Honeypot Intelligent** : AttackCorrelator multi-trap avec detection de recon, brute-force et lateral movement
 - **Conformite** : Scoring pondere ISO 27001, NIST CSF, RGPD avec niveaux de maturite et risk rating
 - **Dashboard Temps Reel** : Visualisation live + API documentee locale (OpenAPI 3.0.3 + explorateur integre)
 - **Dashboard 100% Local** : aucune police ou librairie chargee depuis un CDN externe
-- **Scenarios MITRE ATT&CK** : Chaines d'attaque completes avec mapping tactiques/techniques
+- **Incident Response** : Workflow NIST SP 800-61 guide avec SLA, playbooks par type d'attaque et rapport post-incident
+- **Forensics** : Reconstruction de timeline, hash SHA-256, chaine de custody, extraction d'IOC
+- **Remediation** : Recommandations prioritisees mappees CWE/MITRE avec etapes actionnables
+- **Detection Metrics** : Precision, Recall, F1-Score par module de detection
+- **Scenarios MITRE ATT&CK** : Chaines d'attaque completes avec mapping tactiques/techniques + diagrammes Mermaid
 - **CI/CD** : 3 categories de jobs (8 checks au total) avec tests, lint + typecheck et security
 - **Mode Demo Automatise** : Une seule commande pour tout tester
-- **704 Tests + 90% Coverage** : Suite de tests complete (unit + integration + HTTP runtime + compliance + WAF + honeypot)
+- **745 Tests + 90% Coverage** : Suite de tests complete (unit + integration + HTTP runtime + compliance + WAF + honeypot + IR + forensics)
 
 ---
 
@@ -110,13 +114,17 @@ CyberSim6 CLI
 |   +-- Honeypot
 |   `-- Scanner
 |
-+-- Modules utilitaires (6)
++-- Modules utilitaires (10)
 |   +-- Tutorial
-|   +-- Scenarios
+|   +-- Scenarios (+ Mermaid diagrams)
 |   +-- Compliance
 |   +-- Report
 |   +-- Password Analyzer
-|   `-- Dashboard
+|   +-- Dashboard
+|   +-- Incident Response (NIST 800-61)
+|   +-- Forensics (Timeline/Hash/IOC)
+|   +-- Remediation (CWE/MITRE)
+|   `-- Anomaly Detection
 |
 +-- Dashboard Web UI
 |   +-- Local API Docs
@@ -157,16 +165,20 @@ CyberSim6 CLI
 | 8 | **Honeypot** | Pots de miel avec AttackCorrelator multi-trap, niveaux de menace, detection recon/brute-force/lateral-movement |
 | 9 | **Scanner** | Scanner de ports reseau (`port_scanner.py`) pour la reconnaissance |
 
-### Modules Utilitaires (6)
+### Modules Utilitaires (10)
 
 | # | Module | Description |
 |---|--------|-------------|
 | 10 | **Tutorial** | Mode interactif d'apprentissage (`interactive.py`) |
-| 11 | **Scenarios** | Chaines d'attaque completes avec mapping MITRE ATT&CK (`attack_chain.py`) |
-| 12 | **Compliance** | Audit ISO 27001, NIST CSF, RGPD - scoring pondere, niveaux de maturite (NOT_IMPLEMENTED / PARTIAL / COMPLIANT), risk rating |
+| 11 | **Scenarios** | Chaines d'attaque completes avec mapping MITRE ATT&CK + diagrammes Mermaid |
+| 12 | **Compliance** | Audit ISO 27001, NIST CSF, RGPD - scoring pondere, niveaux de maturite, risk rating |
 | 13 | **Report** | Generation de rapports PDF (`pdf_report.py`) |
 | 14 | **Password Analyzer** | Analyse de robustesse des mots de passe (`password_analyzer.py`) |
 | 15 | **Dashboard** | Interface web temps reel + API REST documentee (OpenAPI + explorateur local) |
+| 16 | **Incident Response** | Workflow NIST SP 800-61 guide avec SLA, playbooks, et rapport post-incident |
+| 17 | **Forensics** | Reconstruction timeline, hash SHA-256, chaine de custody, extraction IOC |
+| 18 | **Remediation** | Recommandations prioritisees mappees CWE/MITRE par type d'attaque |
+| 19 | **Anomaly Detection** | Detection d'anomalies statistiques (Z-score, entropie) via CLI |
 
 ---
 
@@ -251,6 +263,22 @@ python -m cybersim ransomware detect --watch ./sandbox/test_files
 python -m cybersim ransomware decrypt --sandbox ./sandbox/test_files
 ```
 
+### Incident Response, Forensics, Remediation
+
+```bash
+# Analyser une session et lancer le workflow IR
+python -m cybersim incident-response --session <SESSION_ID>
+
+# Analyse forensique (timeline, IOC, evidence)
+python -m cybersim forensics --session <SESSION_ID>
+
+# Recommandations de remediation
+python -m cybersim remediation --session <SESSION_ID>
+
+# Detection d'anomalies
+python -m cybersim anomaly --session <SESSION_ID> --threshold 2.5
+```
+
 ### Dashboard seul
 
 ```bash
@@ -323,7 +351,7 @@ python -m pytest tests/test_cli.py -v
 python -m pytest tests/ --cov=cybersim --cov-report=html
 ```
 
-**704 tests** couvrent : safety, logging, config, reporter, perf, base_module, detection (6 modules), patterns, integration, dashboard API, WAF (50+ regles), honeypot, scanner, scenarios, tutorial, compliance, audit trail, anomaly detection, threat score, PDF report, password analyzer, et les runtimes d'attaque SQLi/XSS.
+**745 tests** couvrent : safety, logging, config, reporter, perf, base_module, detection (6 modules), patterns, integration, dashboard API, WAF (50+ regles), honeypot, scanner, scenarios, tutorial, compliance, audit trail, anomaly detection, threat score, PDF report, password analyzer, et les runtimes d'attaque SQLi/XSS.
 
 ---
 
@@ -410,7 +438,7 @@ cybersim6/
 |-- sandbox/
 |   |-- setup_sandbox.py           # Script de creation sandbox
 |   `-- test_files/                # Fichiers fictifs
-|-- tests/                         # 704 tests pytest
+|-- tests/                         # 745 tests pytest
 |   |-- test_core/                 #   Core (safety, logging, compliance, audit, ...)
 |   |-- test_ddos/                 #   DDoS
 |   |-- test_sqli/                 #   SQL Injection
@@ -447,6 +475,7 @@ cybersim6/
 | [Plan de Reponse aux Incidents](docs/plan_reponse_incidents_irp.md) | IRP NIST SP 800-61, 6 scenarios, KPI <= 15 min |
 | [Rapport CVE/CWE/MITRE](docs/rapport_cve_cwe_mitre.md) | References CVE, CWE, mapping MITRE ATT&CK |
 | [Security Policy](SECURITY.md) | Architecture de securite, signalement de vulnerabilites |
+| [Architecture](docs/architecture.md) | Diagrammes d'architecture Mermaid (modules, flux, securite) |
 | [Changelog](CHANGELOG.md) | Historique des versions et changements |
 
 ---
@@ -457,7 +486,7 @@ cybersim6/
 make help        # Afficher toutes les commandes
 make install     # Installer le projet
 make dev         # Installer avec outils de dev
-make test        # Lancer les 704 tests
+make test        # Lancer les 745 tests
 make coverage    # Tests + rapport de couverture HTML
 make demo        # Lancer la demo automatisee
 make dashboard   # Demarrer le dashboard web

@@ -8,6 +8,7 @@ import json
 import sys
 import os
 from pathlib import Path
+from urllib.parse import urlparse
 
 # Fix Windows terminal encoding
 if sys.platform == "win32":
@@ -17,6 +18,44 @@ from cybersim import __version__
 from cybersim.core.config_loader import load_config, get_module_config
 from cybersim.core.logging_engine import CyberSimLogger
 from cybersim.core.reporter import print_summary
+
+
+# ── Input Validators ──
+
+def _valid_port(value: str) -> int:
+    """Validate a TCP port number (1-65535)."""
+    try:
+        port = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Invalid port: {value!r} (must be integer)")
+    if not 1 <= port <= 65535:
+        raise argparse.ArgumentTypeError(f"Port {port} out of range (1-65535)")
+    return port
+
+
+def _valid_url(value: str) -> str:
+    """Validate a URL (must be loopback for safety)."""
+    parsed = urlparse(value)
+    if not parsed.scheme:
+        value = f"http://{value}"
+        parsed = urlparse(value)
+    host = parsed.hostname or ""
+    if host not in ("127.0.0.1", "localhost", "::1", ""):
+        raise argparse.ArgumentTypeError(
+            f"Target must be localhost (got {host!r}). CyberSim6 is sandbox-only."
+        )
+    return value
+
+
+def _positive_int(value: str) -> int:
+    """Validate a positive integer."""
+    try:
+        n = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Invalid integer: {value!r}")
+    if n <= 0:
+        raise argparse.ArgumentTypeError(f"Must be positive (got {n})")
+    return n
 
 
 # ── ANSI Colors ──
@@ -59,6 +98,10 @@ MODULE_ICONS = {
     "report": f"{C.BLUE}Report{C.RESET}",
     "compliance": f"{C.GREEN}Compliance{C.RESET}",
     "analyze-password": f"{C.YELLOW}Password{C.RESET}",
+    "incident-response": f"{C.RED}{C.BOLD}IR{C.RESET}",
+    "forensics": f"{C.CYAN}{C.BOLD}Forensics{C.RESET}",
+    "anomaly": f"{C.MAGENTA}Anomaly{C.RESET}",
+    "remediation": f"{C.GREEN}Remediation{C.RESET}",
 }
 
 
@@ -78,29 +121,29 @@ def create_parser():
 
     syn = ddos_sub.add_parser("syn-flood", help="SYN Flood attack")
     syn.add_argument("--target", default="127.0.0.1")
-    syn.add_argument("--port", type=int, default=8080)
-    syn.add_argument("--count", type=int, default=1000)
-    syn.add_argument("--rate", type=int, default=100)
+    syn.add_argument("--port", type=_valid_port, default=8080)
+    syn.add_argument("--count", type=_positive_int, default=1000)
+    syn.add_argument("--rate", type=_positive_int, default=100)
 
     http = ddos_sub.add_parser("http-flood", help="HTTP Flood attack")
-    http.add_argument("--url", default="http://127.0.0.1:8080")
-    http.add_argument("--requests", type=int, default=500)
-    http.add_argument("--threads", type=int, default=4)
+    http.add_argument("--url", type=_valid_url, default="http://127.0.0.1:8080")
+    http.add_argument("--requests", type=_positive_int, default=500)
+    http.add_argument("--threads", type=_positive_int, default=4)
 
     ddos_sub.add_parser("server", help="Start target HTTP server")
     detect = ddos_sub.add_parser("detect", help="DDoS detection")
-    detect.add_argument("--duration", type=int, default=30)
+    detect.add_argument("--duration", type=_positive_int, default=30)
 
     # --- Brute Force ---
     bf_parser = subparsers.add_parser("bruteforce", help="Brute Force simulation module")
     bf_sub = bf_parser.add_subparsers(dest="action")
 
     attack = bf_sub.add_parser("attack", help="Dictionary attack")
-    attack.add_argument("--url", default="http://127.0.0.1:9090/login")
+    attack.add_argument("--url", type=_valid_url, default="http://127.0.0.1:9090/login")
     attack.add_argument("--username", default="admin")
     attack.add_argument("--wordlist", default=None)
-    attack.add_argument("--max-attempts", type=int, default=1000)
-    attack.add_argument("--delay", type=int, default=50, help="Delay in ms")
+    attack.add_argument("--max-attempts", type=_positive_int, default=1000)
+    attack.add_argument("--delay", type=_positive_int, default=50, help="Delay in ms")
 
     bf_sub.add_parser("server", help="Start auth server")
     bf_detect = bf_sub.add_parser("detect", help="Brute force detection")
@@ -112,7 +155,7 @@ def create_parser():
 
     sqli_sub.add_parser("server", help="Start vulnerable SQL server")
     sqli_attack = sqli_sub.add_parser("attack", help="Run SQL injection attacks")
-    sqli_attack.add_argument("--url", default="http://127.0.0.1:8081")
+    sqli_attack.add_argument("--url", type=_valid_url, default="http://127.0.0.1:8081")
     sqli_attack.add_argument("--type", choices=["auth_bypass", "union_based", "error_based", "blind_boolean", "all"],
                              default="all", dest="attack_type")
 
@@ -125,7 +168,7 @@ def create_parser():
 
     xss_sub.add_parser("server", help="Start vulnerable XSS app")
     xss_attack = xss_sub.add_parser("attack", help="Run XSS attacks")
-    xss_attack.add_argument("--url", default="http://127.0.0.1:8082")
+    xss_attack.add_argument("--url", type=_valid_url, default="http://127.0.0.1:8082")
     xss_attack.add_argument("--type", choices=["reflected", "stored", "dom", "all"],
                             default="all", dest="attack_type")
 
@@ -139,7 +182,7 @@ def create_parser():
     phish_server = phish_sub.add_parser("server", help="Start phishing server")
     phish_server.add_argument("--template", choices=["corporate_login", "password_reset", "office365"],
                               default="corporate_login")
-    phish_server.add_argument("--port", type=int, default=8083)
+    phish_server.add_argument("--port", type=_valid_port, default=8083)
 
     phish_campaign = phish_sub.add_parser("campaign", help="Run phishing campaign simulation")
     phish_campaign.add_argument("--template", default="corporate_login")
@@ -168,8 +211,8 @@ def create_parser():
 
     # --- WAF ---
     waf_parser = subparsers.add_parser("waf", help="Start the Web Application Firewall")
-    waf_parser.add_argument("--port", type=int, default=8877, help="WAF listening port")
-    waf_parser.add_argument("--backend-port", type=int, default=8080, help="Backend server port")
+    waf_parser.add_argument("--port", type=_valid_port, default=8877, help="WAF listening port")
+    waf_parser.add_argument("--backend-port", type=_valid_port, default=8080, help="Backend server port")
 
     # --- Scanner ---
     scanner_parser = subparsers.add_parser("scanner", help="Run the port scanner")
@@ -180,7 +223,7 @@ def create_parser():
 
     # --- Honeypot ---
     honeypot_parser = subparsers.add_parser("honeypot", help="Start the honeypot server")
-    honeypot_parser.add_argument("--port", type=int, default=9090, help="Honeypot listening port")
+    honeypot_parser.add_argument("--port", type=_valid_port, default=9090, help="Honeypot listening port")
 
     # --- Tutorial ---
     tutorial_parser = subparsers.add_parser("tutorial", help="Start interactive tutorial")
@@ -218,7 +261,7 @@ def create_parser():
 
     # --- Dashboard ---
     dash_parser = subparsers.add_parser("dashboard", help="Start web dashboard")
-    dash_parser.add_argument("--port", type=int, default=8888, help="Dashboard port")
+    dash_parser.add_argument("--port", type=_valid_port, default=8888, help="Dashboard port")
 
     # --- Logs ---
     logs_parser = subparsers.add_parser("logs", help="Log management")
@@ -227,6 +270,24 @@ def create_parser():
     export = logs_sub.add_parser("export", help="Export logs")
     export.add_argument("--format", choices=["json", "csv"], default="json")
     export.add_argument("--output", default=None)
+
+    # --- Incident Response ---
+    ir_parser = subparsers.add_parser("incident-response", help="Run incident response workflow (NIST SP 800-61)")
+    ir_parser.add_argument("--session", default=None, help="Session ID to analyze")
+
+    # --- Forensics ---
+    forensic_parser = subparsers.add_parser("forensics", help="Digital forensic analysis")
+    forensic_parser.add_argument("--session", default=None, help="Session ID to analyze")
+
+    # --- Anomaly Detection ---
+    anomaly_parser = subparsers.add_parser("anomaly", help="Anomaly detection testing")
+    anomaly_parser.add_argument("--session", default=None, help="Session ID to analyze")
+    anomaly_parser.add_argument("--window", type=_positive_int, default=100, help="Window size")
+    anomaly_parser.add_argument("--threshold", type=float, default=2.5, help="Z-score threshold")
+
+    # --- Remediation ---
+    remed_parser = subparsers.add_parser("remediation", help="Generate remediation recommendations")
+    remed_parser.add_argument("--session", default=None, help="Session ID to analyze")
 
     # --- Sandbox ---
     sandbox_parser = subparsers.add_parser("sandbox", help="Sandbox management")
@@ -287,6 +348,14 @@ def main():
             _handle_compliance(args, config, logger)
         elif args.module == "analyze-password":
             _handle_password(args, config, logger)
+        elif args.module == "incident-response":
+            _handle_incident_response(args, config, logger)
+        elif args.module == "forensics":
+            _handle_forensics(args, config, logger)
+        elif args.module == "anomaly":
+            _handle_anomaly(args, config, logger)
+        elif args.module == "remediation":
+            _handle_remediation(args, config, logger)
         elif args.module == "logs":
             _handle_logs(args, config, logger)
         elif args.module == "sandbox":
@@ -588,6 +657,73 @@ def _handle_password(args, config, logger):
     print("  Recommendations:")
     for recommendation in analysis.recommendations:
         print(f"    - {recommendation}")
+
+
+def _handle_incident_response(args, config, logger):
+    from cybersim.incident_response.response_engine import IncidentResponse
+
+    source_logger = _load_session_logger(args.session, config) if args.session else logger
+    if not source_logger.events:
+        raise ValueError("No events available. Use --session to analyze a saved session, or run after demo.")
+
+    ir = IncidentResponse(logger=source_logger, events=source_logger.events)
+    ir.run()
+    print(ir.generate_text_report())
+
+
+def _handle_forensics(args, config, logger):
+    from cybersim.forensics.analyzer import ForensicAnalyzer
+
+    source_logger = _load_session_logger(args.session, config) if args.session else logger
+    if not source_logger.events:
+        raise ValueError("No events available. Use --session to analyze a saved session, or run after demo.")
+
+    analyzer = ForensicAnalyzer(logger=source_logger, events=source_logger.events)
+    print(analyzer.generate_text_report())
+
+
+def _handle_anomaly(args, config, logger):
+    from cybersim.core.anomaly_detection import StatisticalDetector
+
+    source_logger = _load_session_logger(args.session, config) if args.session else logger
+    if not source_logger.events:
+        raise ValueError("No events available. Use --session to analyze a saved session.")
+
+    detector = StatisticalDetector(
+        window_size=args.window,
+        z_threshold=args.threshold,
+    )
+
+    warning_count = 0
+    for event in source_logger.events:
+        status = event.get("details", {}).get("status", "")
+        value = 1.0 if status == "warning" else 0.0
+        result = detector.observe(value, features={"event_type": event.get("event_type", "")})
+        if result.anomaly_type.value != "normal":
+            warning_count += 1
+
+    baseline = detector.get_baseline()
+    print("\n  Anomaly Detection Results")
+    print(f"  {'─' * 40}")
+    print(f"  Events analyzed : {len(source_logger.events)}")
+    print(f"  Anomalies found : {warning_count}")
+    print(f"  Baseline mean   : {baseline['mean']:.4f}")
+    print(f"  Baseline std    : {baseline['std']:.4f}")
+    print(f"  Window size     : {baseline['window_size']}")
+    print(f"  Z-threshold     : {args.threshold}")
+    print()
+
+
+def _handle_remediation(args, config, logger):
+    from cybersim.core.remediation import RemediationEngine
+
+    source_logger = _load_session_logger(args.session, config) if args.session else logger
+    if not source_logger.events:
+        raise ValueError("No events available. Use --session to analyze a saved session.")
+
+    engine = RemediationEngine()
+    engine.analyze_events(source_logger.events)
+    print(engine.generate_report())
 
 
 def _handle_logs(args, config, logger):
